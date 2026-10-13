@@ -760,3 +760,11 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
   .field-row{grid-template-columns:1fr;gap:0}
   .field input,.field select,.field textarea{font-size:16px}
 }
+.brand,.topbar .btn-sm{white-space:nowrap}
+@media (max-width:420px){
+  .topbar-in{gap:10px}
+  .topbar .brand{font-size:19px;gap:7px}
+  .topbar .court-glyph{display:none}
+  .st{min-height:0;padding:9px 12px}
+  .st .btn-sm{padding:6px 12px}
+}
