@@ -12,7 +12,7 @@ window.PP = (function(){
 
   /* Monthly USD. Yearly = 10 months. Founding clubs keep this price for as long as they stay. */
   var PLANS = [
-    {id:"starter",  name:"Starter",  max:50,   price:1699,
+    {id:"starter",  name:"Starter",  max:50,   price:599,
      who:"Up to 50 training players",
      perks:["Player accounts with personal stats","Coach skill ratings on 9 padel shots","Attendance and training schedule","Home drill library","2 coach accounts","English and Spanish","Email support"]},
     {id:"club",     name:"Club",     max:150,  price:999, pick:true,
