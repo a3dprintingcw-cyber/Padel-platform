@@ -12,16 +12,16 @@ window.PP = (function(){
 
   /* Monthly USD. Yearly = 10 months. Founding clubs keep this price for as long as they stay. */
   var PLANS = [
-    {id:"starter",  name:"Starter",  max:50,   price:199,
+    {id:"starter",  name:"Starter",  max:50,   price:1699,
      who:"Up to 50 training players",
      perks:["Player accounts with personal stats","Coach skill ratings on 9 padel shots","Attendance and training schedule","Home drill library","2 coach accounts","English and Spanish","Email support"]},
-    {id:"club",     name:"Club",     max:150,  price:349, pick:true,
+    {id:"club",     name:"Club",     max:150,  price:999, pick:true,
      who:"51 to 150 training players",
      perks:["Everything in Starter","Points and rewards at your bar or shop","Group leaderboards and badges","6 coach accounts","Your logo and club colors","WhatsApp support"]},
-    {id:"academy",  name:"Academy",  max:300,  price:599,
+    {id:"academy",  name:"Academy",  max:300,  price:1699,
      who:"151 to 300 training players",
      perks:["Everything in Club","Unlimited coaches","Video drills from your coaches","Parent accounts for kids programs","Monthly progress report to every player","Priority support"]},
-    {id:"flagship", name:"Flagship", max:null, price:899,
+    {id:"flagship", name:"Flagship", max:null, price:2799,
      who:"300+ players or more than one location",
      perks:["Everything in Academy","Multiple locations under one club","Your own web address","On site onboarding day","Data export","A direct line to us"]}
   ];
