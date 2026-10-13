@@ -5,28 +5,46 @@
   function $(s){ return document.querySelector(s); }
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function usd(n){ return "$" + n.toLocaleString("en-US"); }
+  /* translate a built string; site-i18n.js supplies window.pvT, English if missing */
+  function T(s, vars){ return window.pvT ? window.pvT(s, vars) : (vars ? s.replace(/\{(\w+)\}/g, function(_, k){ return vars[k]; }) : s); }
 
   /* ---------------------------------------------------------------- pricing */
   var plansEl = $("#plans");
   if(plansEl){
-    var yearly = false;
+    var yearly = false, picked = (PP.PLANS.filter(function(p){ return p.pick; })[0] || PP.PLANS[0]).id;
     var paint = function(){
       plansEl.innerHTML = PP.PLANS.map(function(p){
-        var amt = yearly ? p.price * 10 : p.price;
-        return '<div class="plan'+(p.pick?" pick":"")+'">'+
-          (p.pick ? '<span class="tag" style="align-self:flex-start;color:var(--coral);border-color:rgba(200,245,66,.4)">Most clubs</span>' : '')+
-          '<h3>'+p.name+'</h3>'+
-          '<div class="who">'+p.who+'</div>'+
-          '<div class="amt">'+usd(amt)+' <small>/ '+(yearly?"year":"month")+'</small></div>'+
-          (yearly ? '<div class="save">You save '+usd(p.price*2)+'</div>' : '')+
-          '<ul><li class="excl">Your whole state or region, nobody else gets it</li>'+p.perks.map(function(x){ return '<li>'+x+'</li>'; }).join("")+'</ul>'+
-          '<a class="btn '+(p.pick?"btn-primary":"btn-ghost")+'" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">Choose '+p.name+'</a>'+
+        var amt = yearly ? p.price * 10 : p.price, on = p.id === picked;
+        return '<div class="plan tier'+(on?" on":"")+(p.id==="flagship"?" top":"")+'" data-plan="'+p.id+'" style="--pc:'+p.color+'" role="button" tabindex="0" aria-pressed="'+on+'">'+
+          '<div class="plan-hd"><h3>'+p.name+'</h3>'+(p.badge ? '<span class="tag pc">'+T(p.badge)+'</span>' : '')+'</div>'+
+          '<div class="who">'+T(p.who)+'</div>'+
+          '<div class="amt">'+usd(amt)+' <small>/ '+(yearly?T("year"):T("month"))+'</small></div>'+
+          (yearly ? '<div class="save">'+T("You save {n}",{n:usd(p.price*2)})+'</div>' : '')+
+          '<ul><li class="excl">'+T("Your whole state or region, nobody else gets it")+'</li>'+
+            p.perks.map(function(x){ return '<li>'+T(x[0])+(x[1] ? ' <span class="soon">'+T("Soon")+'</span>' : '')+'</li>'; }).join("")+'</ul>'+
+          '<a class="btn plan-cta" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
         '</div>';
       }).join("");
       $("#billNote").textContent = yearly
-        ? "Billed once a year, two months free."
-        : "Billed monthly. Cancel with 30 days notice, and your region opens up again.";
+        ? T("Billed once a year, two months free.")
+        : T("Billed monthly. Cancel with 30 days notice, and your region opens up again.");
     };
+    var pick = function(card){
+      if(!card || card.dataset.plan === picked) return;
+      picked = card.dataset.plan;
+      plansEl.querySelectorAll(".tier").forEach(function(c){
+        var on = c.dataset.plan === picked;
+        c.classList.toggle("on", on);
+        c.setAttribute("aria-pressed", String(on));
+      });
+    };
+    plansEl.addEventListener("click", function(e){
+      if(e.target.closest(".plan-cta")) return;
+      pick(e.target.closest(".tier"));
+    });
+    plansEl.addEventListener("keydown", function(e){
+      if((e.key === "Enter" || e.key === " ") && e.target.classList.contains("tier")){ e.preventDefault(); pick(e.target); }
+    });
     document.addEventListener("click", function(e){
       var b = e.target.closest("[data-bill]");
       if(!b) return;
@@ -34,6 +52,7 @@
       document.querySelectorAll("[data-bill]").forEach(function(x){ x.classList.toggle("on", x === b); });
       paint();
     });
+    document.addEventListener("pv:lang", paint);
     paint();
   }
 
@@ -47,10 +66,19 @@
     }
     return "US";
   }
-  function countryOptions(sel){
-    sel.innerHTML = PP.COUNTRIES.map(function(c){ return '<option value="'+c.code+'">'+esc(c.name)+'</option>'; }).join("");
+  /* country names in the visitor's language, from the browser itself */
+  function cName(c){
+    try{ var lang = (window.pvLang && window.pvLang()) || "en"; return new Intl.DisplayNames([lang], {type:"region"}).of(c.code) || c.name; }
+    catch(e){ return c.name; }
   }
-  var LABEL = {open:"Open", talks:"In talks", taken:"Taken"};
+  function countryOptions(sel){
+    var keep = sel.value;
+    var list = PP.COUNTRIES.map(function(c){ return {code:c.code, name:cName(c)}; });
+    list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+    sel.innerHTML = list.map(function(c){ return '<option value="'+c.code+'">'+esc(c.name)+'</option>'; }).join("");
+    if(keep) sel.value = keep;
+  }
+  function LBL(k){ return T({open:"Open", talks:"In talks", taken:"Taken"}[k]); }
 
   /* ---------------------------------------------------------------- territories */
   var statesEl = $("#states");
@@ -66,15 +94,15 @@
       var all = PP.regions(c.code);
       var list = all.filter(function(r){ return !q || r.name.toLowerCase().indexOf(q) > -1; });
       $("#openCount").textContent = all.filter(function(r){ return r.status === "open"; }).length;
-      $("#openLabel").textContent = all.length === 1 ? "open in " + c.name : (c.label.toLowerCase() + (all.length > 1 ? "s" : "") + " open in " + c.name);
-      $("#stateFind").placeholder = "Find your " + c.label.toLowerCase();
+      $("#openLabel").textContent = T("open in {country}", {country:cName(c)});
+      $("#stateFind").placeholder = T("Find your " + c.label.toLowerCase());
       $("#stateFind").hidden = all.length < 6;
       statesEl.innerHTML = list.map(function(r){
-        var title = r.name === "Whole country" ? c.name : r.name;
-        var sub = r.name === "Whole country" ? "Whole country · " + LABEL[r.status] : LABEL[r.status];
+        var title = r.name === "Whole country" ? cName(c) : r.name;
+        var sub = r.name === "Whole country" ? T("Whole country") + " · " + LBL(r.status) : LBL(r.status);
         var tail = r.status === "open"
-          ? '<a class="btn btn-primary btn-sm" href="register.html?country='+c.code+'&region='+encodeURIComponent(r.name)+'">Claim</a>'
-          : '<span class="muted small">'+(r.club ? esc(r.club) : LABEL[r.status])+'</span>';
+          ? '<a class="btn btn-primary btn-sm" href="register.html?country='+c.code+'&region='+encodeURIComponent(r.name)+'">'+T("Claim")+'</a>'
+          : '<span class="muted small">'+(r.club ? esc(r.club) : LBL(r.status))+'</span>';
         return '<div class="st '+r.status+'"><i class="sdot '+r.status+'"></i>'+
           '<div class="st-n"><b>'+esc(title)+'</b><span>'+sub+'</span></div>'+tail+'</div>';
       }).join("");
@@ -86,6 +114,7 @@
       drawStates();
     });
     $("#stateFind").addEventListener("input", drawStates);
+    document.addEventListener("pv:lang", function(){ countryOptions(cSel); drawStates(); });
     drawStates();
   }
 
@@ -100,13 +129,13 @@
 
     var fillRegions = function(keep){
       var c = PP.country(coSel.value), list = PP.regions(c.code);
-      $("#regStateLabel").textContent = c.label;
+      $("#regStateLabel").textContent = T(c.label);
       if(list.length === 1){
-        stSel.innerHTML = '<option value="'+esc(list[0].name)+'">Whole country</option>';
+        stSel.innerHTML = '<option value="'+esc(list[0].name)+'">'+T("Whole country")+'</option>';
       } else {
-        stSel.innerHTML = '<option value="">Choose your ' + c.label.toLowerCase() + '</option>' +
+        stSel.innerHTML = '<option value="">' + T("Choose your " + c.label.toLowerCase()) + '</option>' +
           list.map(function(r){
-            return '<option value="'+esc(r.name)+'"'+(r.status==="taken"?" disabled":"")+'>'+esc(r.name)+(r.status==="taken"?" (taken)":"")+'</option>';
+            return '<option value="'+esc(r.name)+'"'+(r.status==="taken"?" disabled":"")+'>'+esc(r.name)+(r.status==="taken"?" ("+T("taken")+")":"")+'</option>';
           }).join("");
       }
       if(keep) stSel.value = keep;
@@ -114,7 +143,7 @@
     };
 
     plSel.innerHTML = PP.PLANS.map(function(p){
-      return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / month</option>';
+      return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>';
     }).join("");
     if(qs.get("plan")) plSel.value = qs.get("plan");
     if(qs.get("billing") === "year") form.billing.value = "Yearly";
@@ -126,12 +155,12 @@
       var c = PP.country(coSel.value), m = $("#stateMsg");
       var r = PP.regions(c.code).filter(function(x){ return x.name === stSel.value; })[0];
       if(!r){ m.hidden = true; return; }
-      var where = r.name === "Whole country" ? c.name : r.name + ", " + c.name;
+      var where = r.name === "Whole country" ? cName(c) : r.name + ", " + cName(c);
       m.hidden = false;
       m.className = "statemsg " + r.status;
-      m.textContent = r.status === "open"  ? where + " is open. Register now and we hold it for you for 7 days."
-                    : r.status === "talks" ? where + " is in talks with another club, but nothing is signed. Register and you're next in line."
-                    : where + " is taken.";
+      m.textContent = r.status === "open"  ? T("{place} is open. Register now and we hold it for you for 7 days.", {place:where})
+                    : r.status === "talks" ? T("{place} is in talks with another club, but nothing is signed. Register and you're next in line.", {place:where})
+                    : T("{place} is taken.", {place:where});
     };
     var showPlan = function(){
       var n = +$("#regPlayers").value, fit = n ? PP.planFor(n) : null, chosen = PP.PLANS.filter(function(p){ return p.id === plSel.value; })[0];
@@ -139,14 +168,20 @@
       var m = $("#planMsg");
       if(!n){ m.textContent = ""; return; }
       m.textContent = fit.id === chosen.id
-        ? n + " players fits " + fit.name + ": " + usd(fit.price) + " a month."
-        : n + " players usually fits " + fit.name + ". You picked " + chosen.name + ".";
+        ? T("{n} players fits {plan}: {price} a month.", {n:n, plan:fit.name, price:usd(fit.price)})
+        : T("{n} players usually fits {plan}. You picked {chosen}.", {n:n, plan:fit.name, chosen:chosen.name});
     };
     coSel.addEventListener("change", function(){ fillRegions(""); });
     stSel.addEventListener("change", showState);
     $("#regPlayers").addEventListener("input", showPlan);
     fillRegions(qs.get("region") || "");
     showPlan();
+    document.addEventListener("pv:lang", function(){
+      var keepPlan = plSel.value, keepRegion = stSel.value;
+      countryOptions(coSel); fillRegions(keepRegion);
+      plSel.innerHTML = PP.PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>'; }).join("");
+      plSel.value = keepPlan; showPlan();
+    });
 
     var message = function(){
       var f = form, plan = PP.PLANS.filter(function(p){ return p.id === f.plan.value; })[0];
@@ -170,14 +205,14 @@
 
     var check = function(){
       var err = $("#formErr"), bad = [];
-      if(!form.club.value.trim()) bad.push("club name");
-      if(!form.city.value.trim()) bad.push("city");
-      if(!form.state.value) bad.push(PP.country(coSel.value).label.toLowerCase());
-      if(!form.name.value.trim()) bad.push("your name");
-      if(!/^\S+@\S+\.\S+$/.test(form.email.value.trim())) bad.push("a valid email");
-      if(!(+form.players.value > 0)) bad.push("number of players");
+      if(!form.club.value.trim()) bad.push(T("club name"));
+      if(!form.city.value.trim()) bad.push(T("city"));
+      if(!form.state.value) bad.push(T(PP.country(coSel.value).label).toLowerCase());
+      if(!form.name.value.trim()) bad.push(T("your name"));
+      if(!/^\S+@\S+\.\S+$/.test(form.email.value.trim())) bad.push(T("a valid email"));
+      if(!(+form.players.value > 0)) bad.push(T("number of players"));
       err.hidden = !bad.length;
-      err.textContent = bad.length ? "Please add: " + bad.join(", ") + "." : "";
+      err.textContent = bad.length ? T("Please add: {list}.", {list:bad.join(", ")}) : "";
       if(bad.length) err.scrollIntoView({block:"center", behavior:"smooth"});
       return !bad.length;
     };
@@ -186,7 +221,7 @@
       e.preventDefault();
       if(!check()) return;
       window.open(PP.waLink(message()), "_blank", "noopener");
-      window.r2toast && window.r2toast("Opening WhatsApp. Hit send and we'll reply within a day.");
+      window.r2toast && window.r2toast(T("Opening WhatsApp. Hit send and we'll reply within a day."));
     });
     $("#regMail").addEventListener("click", function(){
       if(!check()) return;

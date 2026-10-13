@@ -10,20 +10,21 @@ window.PP = (function(){
     display:  "+599 9 540 1708"
   };
 
-  /* Monthly USD. Yearly = 10 months. Founding clubs keep this price for as long as they stay. */
+  /* Monthly USD. Yearly = 10 months. Founding clubs keep this price for as long as they stay.
+     Each perk is [text, soon]: soon = true shows a "Soon" tag, for things not built yet. */
   var PLANS = [
-    {id:"starter",  name:"Starter",  max:50,   price:599,
+    {id:"starter",  name:"Starter",  max:50,   price:599,  color:"#35C6D6",
      who:"Up to 50 training players",
-     perks:["Player accounts with personal stats","Coach skill ratings on 9 padel shots","Attendance and training schedule","Home drill library","2 coach accounts","English and Spanish","Email support"]},
-    {id:"club",     name:"Club",     max:150,  price:999, pick:true,
+     perks:[["Player accounts with personal stats"],["Coach ratings on 9 padel shots"],["Level system set by your coaches"],["Training schedule and attendance"],["Coach notes on every player"],["Home drill library"],["2 coach accounts"],["8 languages"],["Email support"]]},
+    {id:"club",     name:"Club",     max:150,  price:999,  color:"#C8F542", pick:true, badge:"Most clubs",
      who:"51 to 150 training players",
-     perks:["Everything in Starter","Points and rewards at your bar or shop","Group leaderboards and badges","6 coach accounts","Your logo and club colors","WhatsApp support"]},
-    {id:"academy",  name:"Academy",  max:300,  price:1699,
+     perks:[["Everything in Starter"],["Points and rewards at your bar or shop"],["Group leaderboards and badges"],["Your logo and club colors"],["Session reminders on WhatsApp", true],["Monthly progress report for every player", true],["6 coach accounts"],["WhatsApp support"]]},
+    {id:"academy",  name:"Academy",  max:300,  price:1699, color:"#FF6B4A",
      who:"151 to 300 training players",
-     perks:["Everything in Club","Unlimited coaches","Video drills from your coaches","Parent accounts for kids programs","Monthly progress report to every player","Priority support"]},
-    {id:"flagship", name:"Flagship", max:null, price:2799,
+     perks:[["Everything in Club"],["Unlimited coaches"],["Video drills from your coaches", true],["Shot video review: coaches mark up a player's clip", true],["Parent accounts for kids programs", true],["Kids pathway with levels and certificates", true],["Club tournaments and ladders in the app", true],["Priority support"]]},
+    {id:"flagship", name:"Flagship", max:null, price:2799, color:"#F2C94C", badge:"The full package",
      who:"300+ players or more than one location",
-     perks:["Everything in Academy","Multiple locations under one club","Your own web address","On site onboarding day","Data export","A direct line to us"]}
+     perks:[["Everything in Academy"],["Your own branded app: your club's name and icon on every player's phone", true],["AI training plan for every player, built from the coach ratings", true],["Owner dashboard: retention, revenue per coach, players about to leave", true],["Match video analysis with every shot tagged", true],["Multiple locations under one club", true],["Connects to your booking system", true],["First right on the regions next to yours"],["Coach education day at your club"],["Your own account manager"],["Early access to every new feature"]]}
   ];
 
   function planFor(players){

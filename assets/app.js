@@ -100,8 +100,19 @@
       '<div class="more-grid">'+list.map(function(n){
         return '<button class="more-btn" data-go="'+n.id+'" data-close>'+icon(n.icon, 20)+
                '<span>'+t("nav."+n.id)+'</span></button>';
+      }).join("")+'</div>'+
+      '<div class="langpick more-lang">'+I.langs.map(function(l){
+        return '<button data-lang="'+l.id+'" class="'+(l.id===I.current?"on":"")+'" title="'+l.label+'">'+l.short+'</button>';
       }).join("")+'</div></div>');
   }
+
+  /* language buttons inside the More sheet */
+  document.addEventListener("click", function(e){
+    var b = e.target.closest(".more-lang [data-lang]");
+    if(!b) return;
+    I.set(b.dataset.lang);
+    $$(".more-lang [data-lang]").forEach(function(x){ x.classList.toggle("on", x === b); });
+  });
 
   function show(id, push){
     var list = navFor(role);
@@ -946,7 +957,7 @@
     if(r) setRole(r.dataset.role);
   });
 
-  I.set(S.all.lang || "en", true);
+  I.set(I.initial(S.all.lang), true);
   document.body.dataset.role = role;
   $$(".roles [data-role]").forEach(function(b){ b.classList.toggle("on", b.dataset.role === role); });
 
