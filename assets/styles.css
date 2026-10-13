@@ -849,3 +849,4 @@ body.gated{overflow:hidden}
 .acc-mail{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-bottom:6px}
 .acc .more-lang{margin:14px 0}
 button.avatar{border:0;cursor:pointer}
+.gate-brand .r2{color:var(--coral)}
