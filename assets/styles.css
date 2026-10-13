@@ -768,3 +768,5 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
   .st{min-height:0;padding:9px 12px}
   .st .btn-sm{padding:6px 12px}
 }
+.logo-glyph{width:17px;height:26px;flex:none}
+@media (max-width:420px){ .topbar .logo-glyph{display:block;width:14px;height:21px} }
