@@ -53,12 +53,12 @@ window.R2 = (function(){
   ];
 
   var DRILLS = [
-    {n:"Wall control, 50 touches", by:"Coach Diego",     ago:"3 days ago",  dur:"6:12",  lvl:"All levels",  kit:"Wall + ball",     g:"linear-gradient(140deg,#1B3B57,#0F2233)"},
-    {n:"Shadow bandeja, no ball",  by:"Coach Diego",     ago:"1 week ago",  dur:"4:38",  lvl:"Intermediate",kit:"Racket only",     g:"linear-gradient(140deg,#23485E,#12283A)"},
-    {n:"Mobility routine",         by:"Coach Sofia",  ago:"1 week ago",  dur:"11:05", lvl:"All levels",  kit:"No kit",          g:"linear-gradient(140deg,#2A4A45,#0F2233)"},
-    {n:"Reaction wall, partner",   by:"Coach Marco",   ago:"2 weeks ago", dur:"7:20",  lvl:"Advanced",    kit:"Wall + partner",  g:"linear-gradient(140deg,#3A3050,#131F33)"},
-    {n:"Grip changes drill",       by:"Coach Javier", ago:"3 weeks ago", dur:"3:45",  lvl:"Beginner",    kit:"Racket only",     g:"linear-gradient(140deg,#4A3326,#16243A)"},
-    {n:"Core for padel, 10 min",   by:"Coach Sofia",  ago:"1 month ago", dur:"10:00", lvl:"All levels",  kit:"Mat",             g:"linear-gradient(140deg,#1F4150,#101F31)"}
+    {n:"Wall control, 50 touches", by:"Coach Diego",     ago:"3 days ago",  dur:"6:12",  lvl:"All levels",  kit:"Wall + ball",     g:"linear-gradient(140deg,#262B31,#171A1E)"},
+    {n:"Shadow bandeja, no ball",  by:"Coach Diego",     ago:"1 week ago",  dur:"4:38",  lvl:"Intermediate",kit:"Racket only",     g:"linear-gradient(140deg,#2A3036,#15181C)"},
+    {n:"Mobility routine",         by:"Coach Sofia",  ago:"1 week ago",  dur:"11:05", lvl:"All levels",  kit:"No kit",          g:"linear-gradient(140deg,#25302A,#171A1E)"},
+    {n:"Reaction wall, partner",   by:"Coach Marco",   ago:"2 weeks ago", dur:"7:20",  lvl:"Advanced",    kit:"Wall + partner",  g:"linear-gradient(140deg,#2E2A36,#15181C)"},
+    {n:"Grip changes drill",       by:"Coach Javier", ago:"3 weeks ago", dur:"3:45",  lvl:"Beginner",    kit:"Racket only",     g:"linear-gradient(140deg,#35291F,#15181C)"},
+    {n:"Core for padel, 10 min",   by:"Coach Sofia",  ago:"1 month ago", dur:"10:00", lvl:"All levels",  kit:"Mat",             g:"linear-gradient(140deg,#232A30,#121417)"}
   ];
 
   var FEED = [

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="22" fill="#0A1622"/>
+  <rect width="100" height="100" rx="22" fill="#0B0D0F"/>
   <g transform="translate(24 11) scale(.65)">
-    <ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#EAF2F8" stroke-width="7"/>
-    <path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#EAF2F8" stroke-width="7" stroke-linecap="round"/>
-    <rect x="33" y="89" width="14" height="27" rx="3" fill="#EAF2F8"/>
-    <polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#FF6B4A" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+    <ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="7"/>
+    <path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="7" stroke-linecap="round"/>
+    <rect x="33" y="89" width="14" height="27" rx="3" fill="#F2F4F5"/>
+    <polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
   </g>
 </svg>

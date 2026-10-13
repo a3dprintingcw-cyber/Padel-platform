@@ -264,7 +264,7 @@ window.r2qr = (function(){
     opts = opts || {};
     var m = matrix(text), n = m.length, q = opts.quiet == null ? 3 : opts.quiet;
     var size = n + q*2;
-    var fg = opts.fg || "#0A1622", bg = opts.bg || "#FFFFFF";
+    var fg = opts.fg || "#0B0D0F", bg = opts.bg || "#FFFFFF";
     var d = "";
     for(var y=0;y<n;y++){
       for(var x=0;x<n;x++){

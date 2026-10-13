@@ -252,7 +252,7 @@
       s += '<rect x="'+x+'" y="'+y+'" width="17" height="'+h+'" rx="3" fill="'+(v?"#35C6D6":"rgba(255,255,255,.13)")+'">'+
            '<animate attributeName="height" from="0" to="'+h+'" dur="'+(0.35+i*0.04).toFixed(2)+'s" fill="freeze"/>'+
            '<animate attributeName="y" from="86" to="'+y+'" dur="'+(0.35+i*0.04).toFixed(2)+'s" fill="freeze"/></rect>';
-      s += '<text x="'+(x+8.5)+'" y="104" font-size="9" font-family="IBM Plex Mono, monospace" fill="#8FA6BC" text-anchor="middle">'+(i+1)+'</text>';
+      s += '<text x="'+(x+8.5)+'" y="104" font-size="9" font-family="IBM Plex Mono, monospace" fill="#9AA3AB" text-anchor="middle">'+(i+1)+'</text>';
     });
     s += '</svg>';
     $("#attChart").innerHTML = s;
@@ -398,7 +398,7 @@
 
   function openCode(rec){
     var url = codeUrl(rec.code);
-    var qr = window.r2qr ? window.r2qr.svg(url, {fg:"#0A1622", bg:"#FFFFFF"}) : "";
+    var qr = window.r2qr ? window.r2qr.svg(url, {fg:"#0B0D0F", bg:"#FFFFFF"}) : "";
     modal(
       '<div class="code-wrap">'+
         '<div class="eyebrow">'+t("p.show")+'</div>'+
@@ -516,7 +516,7 @@
       var done = S.drillDone(d.id);
       return '<article class="drill'+(done?" complete":"")+'" data-drill="'+d.id+'">'+
         '<div class="thumb" style="background:'+d.g+'">'+
-        '<div class="play"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2.5l7 4.5-7 4.5z" fill="#EAF2F8"/></svg></div>'+
+        '<div class="play"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2.5l7 4.5-7 4.5z" fill="#F2F4F5"/></svg></div>'+
         '<span class="dur">'+d.dur+'</span></div>'+
         '<div class="drill-body"><h4>'+esc(d.n)+'</h4><div class="by">'+esc(d.by)+'</div>'+
         '<div class="chips"><span class="chip">'+d.lvl+'</span><span class="chip sea">'+d.kit+'</span></div>'+
@@ -676,7 +676,7 @@
         id:"d" + Date.now(), n:nm, by:"Coach Diego",
         dur:$("#drillDur").value || "5:00",
         lvl:$("#drillLvl").value, kit:$("#drillKit").value || "Racket only",
-        g:"linear-gradient(140deg,#1B3B57,#0F2233)"
+        g:"linear-gradient(140deg,#262B31,#171A1E)"
       });
       $("#drillName").value = "";
       renderDrills();

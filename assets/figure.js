@@ -11,7 +11,7 @@ window.r2figure = (function(){
   /* score bands. Semantic, not the brand accent. */
   function band(v){
     if(v < 5.5) return {c:"#FF5A5A", t:T("v.needs")};
-    if(v < 7.0) return {c:"#FFC24B", t:T("v.solid")};
+    if(v < 7.0) return {c:"#FF9F43", t:T("v.solid")};
     return {c:"#5BD98A", t:T("v.strong")};
   }
 
@@ -69,17 +69,17 @@ window.r2figure = (function(){
         return '<polygon points="'+p.join(" ")+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2" stroke-linejoin="round"/>';
       }
       s += poly("sq","rgba(143,166,188,.12)","rgba(143,166,188,.55)");
-      s += poly("me","rgba(255,107,74,.22)","#FF6B4A");
+      s += poly("me","rgba(200,245,66,.22)","#C8F542");
       for(var j=0;j<n;j++){
         var d = pt(j, R[j].me);
-        s += '<circle cx="'+d[0]+'" cy="'+d[1]+'" r="3.4" fill="#FF6B4A"/>';
+        s += '<circle cx="'+d[0]+'" cy="'+d[1]+'" r="3.4" fill="#C8F542"/>';
         var l = pt(j, 12.3);
         var anchor = l[0] > cx+6 ? "start" : (l[0] < cx-6 ? "end" : "middle");
-        s += '<text x="'+l[0]+'" y="'+(l[1]+3.5)+'" font-size="11" font-family="'+MONO+'" fill="#8FA6BC" text-anchor="'+anchor+'">'+R[j].k+'</text>';
+        s += '<text x="'+l[0]+'" y="'+(l[1]+3.5)+'" font-size="11" font-family="'+MONO+'" fill="#9AA3AB" text-anchor="'+anchor+'">'+R[j].k+'</text>';
       }
       s += '<g font-size="11" font-family="'+MONO+'">'+
-           '<rect x="38" y="294" width="10" height="10" rx="2" fill="#FF6B4A"/><text x="54" y="303" fill="#EAF2F8">'+D.PLAYER.first+'</text>'+
-           '<rect x="140" y="294" width="10" height="10" rx="2" fill="rgba(143,166,188,.55)"/><text x="156" y="303" fill="#8FA6BC">Group average</text>'+
+           '<rect x="38" y="294" width="10" height="10" rx="2" fill="#C8F542"/><text x="54" y="303" fill="#F2F4F5">'+D.PLAYER.first+'</text>'+
+           '<rect x="140" y="294" width="10" height="10" rx="2" fill="rgba(143,166,188,.55)"/><text x="156" y="303" fill="#9AA3AB">Group average</text>'+
            '</g></svg>';
       $("#radar").innerHTML = s;
     })();

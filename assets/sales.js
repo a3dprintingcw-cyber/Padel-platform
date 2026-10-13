@@ -14,7 +14,7 @@
       plansEl.innerHTML = PP.PLANS.map(function(p){
         var amt = yearly ? p.price * 10 : p.price;
         return '<div class="plan'+(p.pick?" pick":"")+'">'+
-          (p.pick ? '<span class="tag" style="align-self:flex-start;color:var(--coral);border-color:rgba(255,107,74,.4)">Most clubs</span>' : '')+
+          (p.pick ? '<span class="tag" style="align-self:flex-start;color:var(--coral);border-color:rgba(200,245,66,.4)">Most clubs</span>' : '')+
           '<h3>'+p.name+'</h3>'+
           '<div class="who">'+p.who+'</div>'+
           '<div class="amt">'+usd(amt)+' <small>/ '+(yearly?"year":"month")+'</small></div>'+
