@@ -850,3 +850,8 @@ body.gated{overflow:hidden}
 .acc .more-lang{margin:14px 0}
 button.avatar{border:0;cursor:pointer}
 .gate-brand .r2{color:var(--coral)}
+.legal{max-width:720px}
+.legal h2{font-family:var(--f-display);font-size:22px;text-transform:uppercase;margin:28px 0 8px}
+.legal p,.legal li{color:var(--muted);font-size:15px}
+.legal b{color:var(--text)}
+.legal ul{padding-left:18px;display:grid;gap:6px}
