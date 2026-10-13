@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Platform | Padel Vitals</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0D0F">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=22">
+</head>
+<body data-page="platform">
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="app.html"><svg class="logo-glyph" viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="8"/><path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="8" stroke-linecap="round"/><rect x="32" y="89" width="16" height="27" rx="3" fill="#F2F4F5"/><polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/></svg><span><span class="r2">Padel</span> Vitals</span></a>
+    <span class="roletag">Platform</span>
+    <span class="who-mail" id="who"></span>
+    <button class="btn btn-ghost btn-sm" id="signOut">Sign out</button>
+  </div>
+</header>
+<div class="gate" id="gate" hidden><div class="gate-card" id="gateBody"></div></div>
+<main class="wrap amain" id="main" hidden>
+  <div class="ahead"><div class="eyebrow">Padel Vitals team</div><h1>Platform</h1></div>
+  <div class="kpis" id="kpis"></div>
+  <section class="card astack">
+    <div class="card-hd"><h3>New club</h3></div>
+    <p class="muted small">Creates the club, holds its region, and invites the owner. The owner signs in with Google using this exact email and lands in their club admin.</p>
+    <form id="newClub" class="aform">
+      <label class="field"><span>Club name</span><input name="name" required></label>
+      <div class="field-row">
+        <label class="field"><span>Country</span><select id="ncCountry" name="country"></select></label>
+        <label class="field"><span>State or region</span><select id="ncRegion" name="region"></select></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>City</span><input name="city"></label>
+        <label class="field"><span>Plan</span><select id="ncPlan" name="plan"></select></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Owner's name</span><input name="ownerName"></label>
+        <label class="field"><span>Owner's email (their Google email)</span><input name="owner" type="email" required></label>
+      </div>
+      <button class="btn btn-primary" type="submit">Create club</button>
+    </form>
+  </section>
+  <section class="astack">
+    <div class="card-hd"><h3>Clubs</h3></div>
+    <div id="clubList" class="alist"></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/regions.js?v=22"></script>
+<script src="assets/clubs.js?v=22"></script>
+<script src="assets/backend.js?v=22"></script>
+<script src="assets/site.js?v=22"></script>
+<script src="assets/admin.js?v=22"></script>
+</body>
+</html>
