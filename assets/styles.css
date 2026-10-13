@@ -855,3 +855,13 @@ button.avatar{border:0;cursor:pointer}
 .legal p,.legal li{color:var(--muted);font-size:15px}
 .legal b{color:var(--text)}
 .legal ul{padding-left:18px;display:grid;gap:6px}
+.gate-card .btn-google{width:100%;justify-content:center;gap:10px;min-height:48px}
+.gate-emailtoggle{display:block;margin:10px auto 4px;font-size:13px}
+#gateForm{margin-top:14px}
+.gate-msg{margin:0 0 10px;padding:9px 12px;border-radius:var(--r-s);background:rgba(255,90,90,.12);color:#FF8A8A;font-size:13px;text-align:left}
+.gate-msg.ok{background:rgba(91,217,138,.12);color:var(--good)}
+.gate-links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+.gate-links .link-btn{font-size:12.5px}
+.gate-noclub{display:grid;gap:12px;color:var(--muted);font-size:14px}
+.gate-noclub p{margin:0}
+.field textarea{width:100%}

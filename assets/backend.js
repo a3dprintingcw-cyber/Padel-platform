@@ -48,6 +48,14 @@ window.PV = (function(){
     return r.data.session;
   }
 
+  async function signInWithGoogle(){
+    var r = await sb.auth.signInWithOAuth({provider:"google", options:{
+      redirectTo: location.origin + location.pathname,
+      queryParams: {prompt: "select_account"}
+    }});
+    if(r.error) throw r.error;
+  }
+
   async function signUp(email, password){
     var r = await sb.auth.signUp({email:email, password:password, options:{
       emailRedirectTo: location.origin + location.pathname
@@ -75,6 +83,8 @@ window.PV = (function(){
     if(!s) return null;
     state.user = s.user;
     await sb.rpc("claim_memberships");
+    var meta = s.user.user_metadata || {};
+    state.googleName = meta.full_name || meta.name || "";
     var mine = fail(await sb.from("members")
       .select("id, club_id, role, full_name, email, level, group_id, status, clubs(id, name, country, region, city, color, plan, status, points_rules)")
       .or("user_id.eq." + s.user.id + ",email.eq." + s.user.email.toLowerCase())
@@ -291,7 +301,7 @@ window.PV = (function(){
     get state(){ return state; },
     client: sb,
     SKILLS: SKILLS,
-    session: session, signIn: signIn, signUp: signUp, signOut: signOut,
+    session: session, signIn: signIn, signInWithGoogle: signInWithGoogle, signUp: signUp, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
     whoami: whoami, useClub: useClub, load: load, loadChecks: loadChecks, roleName: roleName,
     act: act

@@ -4,6 +4,27 @@
   "use strict";
 
   var D = window.R2, S = window.r2store, I = window.r2i18n;
+  /* REAL: signed in with a real account, data comes from the database (backend.js).
+     Otherwise the app runs on the sample club, for demos. */
+  var PVB = window.PV, REAL = false;
+  function oops(err){
+    var m = (err && (err.message || err.error_description)) || "Something went wrong";
+    if(/not enough points/i.test(m)) m = t("p.short");
+    window.r2toast(m);
+  }
+  /* run a server action, then pull fresh data and redraw */
+  function sync(promise, okMsg){
+    return Promise.resolve(promise).then(function(res){
+      return reload().then(function(){ if(okMsg) window.r2toast(okMsg); return res; });
+    }).catch(function(err){ oops(err); return reload(); });
+  }
+  function reload(){
+    if(!REAL) return Promise.resolve();
+    return PVB.load().then(function(){
+      renderAll(); drawAttendance();
+      if(window.r2figure) window.r2figure.mount();
+    });
+  }
   var CODE_LIFE = 10 * 60 * 1000;   /* a kantine code is good for ten minutes */
 
   function $(s, r){ return (r || document).querySelector(s); }
@@ -49,15 +70,15 @@
   /* ---------------------------------------------------------------- navigation */
 
   var NAV = [
-    {id:"dash",     roles:"player coach", icon:'<path d="M3 10.5L11 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z"/>'},
+    {id:"dash",     roles:"player", icon:'<path d="M3 10.5L11 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z"/>'},
     {id:"schedule", roles:"player coach", icon:'<rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/>'},
-    {id:"dev",      roles:"player coach", icon:'<path d="M4 18V9M9.5 18V4M15 18v-6M20.5 18v-9"/>'},
-    {id:"pts",      roles:"player coach", icon:'<circle cx="11" cy="11" r="8"/><path d="M11 7v8M8 11h6"/>'},
+    {id:"dev",      roles:"player", icon:'<path d="M4 18V9M9.5 18V4M15 18v-6M20.5 18v-9"/>'},
+    {id:"pts",      roles:"player", icon:'<circle cx="11" cy="11" r="8"/><path d="M11 7v8M8 11h6"/>'},
     {id:"home",     roles:"player coach", icon:'<path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/>'},
     {id:"squad",    roles:"player coach", icon:'<path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/>'},
     {id:"coach",    roles:"player coach", icon:'<circle cx="8" cy="8" r="3.2"/><path d="M3 19c0-3 2.4-5 5-5s5 2 5 5M16 6.5a3 3 0 0 1 0 6M17 19c0-2.2-.9-3.9-2.3-4.6"/>'},
     {id:"staff",    roles:"coach",        icon:'<path d="M11 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L6.5 16.8l.9-5L3.8 8.3l5-.7z"/>'},
-    {id:"bar",      roles:"bar",          icon:'<path d="M4 4h14l-6 7v7h3M4 4l6 7M8 18h4"/>'}
+    {id:"bar",      roles:"bar coach",          icon:'<path d="M4 4h14l-6 7v7h3M4 4l6 7M8 18h4"/>'}
   ];
 
   /* ---------------------------------------------------------------- who is signed in
@@ -156,7 +177,8 @@
 
   function route(hash){
     if(hash.indexOf("verify-") === 0){
-      setRole("bar");
+      if(REAL && role === "player"){ show("pts", false); return; }
+      if(!REAL) setRole("bar");
       show("bar", false);
       var input = $("#barCode");
       if(input){ input.value = hash.slice(7).toUpperCase(); checkCode(); }
@@ -269,7 +291,7 @@
       '<svg class="nba-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>';
   }
 
-  (function attendance(){
+  function drawAttendance(){
     var s = '<svg viewBox="0 0 300 120" width="100%" role="img" aria-label="Attendance by week">';
     s += '<line x1="0" y1="86" x2="300" y2="86" stroke="rgba(255,255,255,.14)" stroke-width="1"/>';
     D.ATT.forEach(function(v,i){
@@ -281,7 +303,10 @@
     });
     s += '</svg>';
     $("#attChart").innerHTML = s;
-  })();
+    var pct = $("#attPct");
+    if(pct) pct.textContent = Math.round(D.ATT.filter(Boolean).length / D.ATT.length * 100) + "%";
+  }
+  drawAttendance();
 
   /* ---------------------------------------------------------------- schedule */
 
@@ -336,6 +361,7 @@
     if(r && !r.disabled){
       var sid = r.dataset.sid, val = r.dataset.rsvp, was = S.rsvp(sid);
       S.setRsvp(sid, was === val ? null : val);
+      if(REAL) sync(was === val ? PVB.act.clearRsvp(sid) : PVB.act.rsvp(sid, val));
       renderSchedule(); renderDash();
       var sess = D.SCHEDULE.filter(function(s){ return s.id === sid; })[0];
       if(val === "in" && was !== "in")
@@ -508,6 +534,15 @@
     var b = e.target.closest("[data-cost]");
     if(!b || b.disabled) return;
     var it = D.SHOP[parseInt(b.dataset.item, 10)];
+    if(REAL){
+      b.disabled = true;
+      PVB.act.redeem(it.id).then(function(res){
+        var rec = {code:res.code, item:it.n, cost:it.c, at:new Date(res.created_at).getTime(), status:"pending"};
+        haptic(18);
+        return reload().then(function(){ openCode(rec); });
+      }).catch(function(err){ oops(err); reload(); });
+      return;
+    }
     S.addPoints(-it.c);
     var rec = {code:newCode(), item:it.n, cost:it.c, at:Date.now(), status:"pending"};
     S.addRedemption(rec);
@@ -566,6 +601,11 @@
     if(btn){
       var id = btn.closest(".drill").dataset.drill;
       if(S.drillDone(id)) return;
+      if(REAL){
+        S.toggleDrill(id); renderDrills();
+        sync(PVB.act.completeDrill(id), D.DRILLS.filter(function(d){ return d.id === id; })[0].n + " · +" + (D.EARN[3] ? D.EARN[3].v : 15) + " " + t("c.points"));
+        return;
+      }
       S.toggleDrill(id);
       award(15, D.DRILLS.filter(function(d){ return d.id === id; })[0].n + " · +15 " + t("c.points"));
       renderDrills(); renderDash();
@@ -624,6 +664,7 @@
 
   function renderStaff(){
     var sel = $("#checkSession");
+    if(sel && REAL){ sel.innerHTML = ""; if(!D.SCHEDULE.some(function(x){ return x.id === checkSession; })) checkSession = D.SCHEDULE[0] ? D.SCHEDULE[0].id : ""; }
     if(sel && !sel.options.length){
       sel.innerHTML = D.SCHEDULE.map(function(x){
         return '<option value="'+x.id+'">'+esc(sessionLabel(x))+'</option>';
@@ -650,8 +691,12 @@
     }).join("") : '<p class="empty">'+t("t.noPlayer")+'</p>';
 
     var sel2 = $("#assessPlayer");
+    if(sel2 && REAL){ var keepP = sel2.value; sel2.innerHTML = ""; }
+    var ng = $("#newGroup");
+    if(ng) ng.innerHTML = '<option value="">—</option>' + (D.GROUPS || []).map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
     if(sel2 && !sel2.options.length)
       sel2.innerHTML = D.ROSTER.map(function(p){ return '<option value="'+p.id+'">'+esc(p.n)+'</option>'; }).join("");
+    if(sel2 && REAL && keepP) sel2.value = keepP;
     var sk = $("#assessSkill");
     if(sk && !sk.options.length)
       sk.innerHTML = D.SKILLS.map(function(s){ return '<option value="'+esc(s.n)+'">'+s.n+'</option>'; }).join("");
@@ -663,6 +708,15 @@
       lastChecks = Object.assign({}, S.checks(checkSession));
       var on = S.checkIn(checkSession, c.dataset.check);
       var p = D.ROSTER.filter(function(x){ return x.id === c.dataset.check; })[0];
+      if(REAL){
+        haptic(); renderStaff();
+        var mid = c.dataset.check;
+        PVB.act[on ? "checkIn" : "undoCheckIn"](checkSession, mid).then(function(){
+          window.r2toast(p.n.split(" ")[0] + " · " + (on ? t("t.present") : t("t.in")));
+          return PVB.loadChecks();
+        }).then(function(){ renderStaff(); }).catch(function(err){ oops(err); reload(); });
+        return;
+      }
       haptic();
       renderStaff();
       if(on && p.me) award(60, p.n.split(" ")[0] + " · +60 " + t("c.points"));
@@ -673,6 +727,15 @@
       lastChecks = Object.assign({}, S.checks(checkSession));
       var all = {};
       D.ROSTER.forEach(function(p){ all[p.id] = true; });
+      if(REAL){
+        var before = S.checks(checkSession);
+        var todo = D.ROSTER.filter(function(p){ return !before[p.id]; });
+        S.setChecks(checkSession, all); renderStaff();
+        Promise.all(todo.map(function(p){ return PVB.act.checkIn(checkSession, p.id); }))
+          .then(function(){ window.r2toast(D.ROSTER.length + " " + t("t.present").toLowerCase()); return PVB.loadChecks(); })
+          .then(renderStaff).catch(function(err){ oops(err); reload(); });
+        return;
+      }
       S.setChecks(checkSession, all);
       haptic(18); renderStaff();
       window.r2toast(D.ROSTER.length + " " + t("t.present").toLowerCase(), t("c.undo"), undoChecks);
@@ -680,6 +743,14 @@
     }
     if(e.target.closest("#checkNone")){
       lastChecks = Object.assign({}, S.checks(checkSession));
+      if(REAL){
+        var were = Object.keys(S.checks(checkSession));
+        S.setChecks(checkSession, {}); renderStaff();
+        Promise.all(were.map(function(id){ return PVB.act.undoCheckIn(checkSession, id); }))
+          .then(function(){ window.r2toast(t("t.clear")); return PVB.loadChecks(); })
+          .then(renderStaff).catch(function(err){ oops(err); reload(); });
+        return;
+      }
       S.setChecks(checkSession, {});
       haptic(18); renderStaff();
       window.r2toast(t("t.clear"), t("c.undo"), undoChecks);
@@ -688,6 +759,15 @@
     if(e.target.closest("#saveAssess")){
       var name = $("#assessSkill").value, val = parseFloat($("#assessVal").value);
       var who  = $("#assessPlayer").options[$("#assessPlayer").selectedIndex].text;
+      if(REAL){
+        var pid = $("#assessPlayer").value, note = ($("#assessNote").value || "").trim();
+        if(!pid){ oops({message:t("t.noPlayer")}); return; }
+        var jobs = [PVB.act.rate(pid, name, Math.round(val*10)/10)];
+        if(note) jobs.push(PVB.act.note(pid, note));
+        $("#assessNote").value = "";
+        sync(Promise.all(jobs), who + " · " + name + " " + val.toFixed(1));
+        return;
+      }
       S.setSkill(name, val);
       applyEdits(); renderSkills();
       if(window.r2figure) window.r2figure.mount();
@@ -697,6 +777,13 @@
     if(e.target.closest("#publishDrill")){
       var nm = $("#drillName").value.trim();
       if(!nm){ $("#drillName").focus(); return; }
+      if(REAL){
+        var dr = {title:nm, level:$("#drillLvl").value, duration:$("#drillDur").value || "", kit:$("#drillKit").value || "",
+                  video:($("#drillVideo") && $("#drillVideo").value.trim()) || ""};
+        $("#drillName").value = ""; if($("#drillVideo")) $("#drillVideo").value = "";
+        sync(PVB.act.drill(dr), nm + " · " + t("t.publish"));
+        return;
+      }
       D.DRILLS.unshift({
         id:"d" + Date.now(), n:nm, by:"Coach Diego",
         dur:$("#drillDur").value || "5:00",
@@ -707,6 +794,15 @@
       renderDrills();
       window.r2toast(nm + " · " + t("t.publish"));
     }
+  });
+
+  document.addEventListener("click", function(e){
+    if(!e.target.closest("#addPlayer")) return;
+    var em = ($("#newEmail").value || "").trim().toLowerCase(), nm2 = ($("#newName").value || "").trim();
+    if(!/^\S+@\S+\.\S+$/.test(em)){ $("#newEmail").focus(); return; }
+    if(!REAL){ window.r2toast(nm2 + " · " + t("t.addBtn")); $("#newEmail").value = ""; $("#newName").value = ""; return; }
+    $("#newEmail").value = ""; $("#newName").value = "";
+    sync(PVB.act.invite(em, nm2, "player", $("#newGroup").value || null), (nm2 || em) + " · " + t("t.addBtn"));
   });
 
   function undoChecks(){
@@ -739,6 +835,26 @@
     var code = ($("#barCode").value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
     var out = $("#barResult");
     if(code.length < 4){ out.innerHTML = ""; return; }
+    if(REAL){
+      /* on the server, checking and confirming are one step: the player is standing there */
+      out.innerHTML = '<div class="verdict"><b>…</b></div>';
+      PVB.act.confirmCode(code).then(function(r){
+        r = r || {};
+        if(r.status === "confirmed"){
+          haptic(24);
+          out.innerHTML = '<div class="verdict good"><b>'+t("k.confirmed")+'</b><span class="big">'+esc(r.item)+'</span><span>'+esc(r.player || "")+'</span></div>';
+          $("#barCode").value = "";
+          renderQueue();
+        } else if(r.status === "used"){
+          out.innerHTML = '<div class="verdict warn"><b>'+t("k.used")+'</b><span>'+esc(r.item)+' · '+esc(r.player || "")+'</span></div>';
+        } else if(r.status === "expired"){
+          out.innerHTML = '<div class="verdict warn"><b>'+t("p.expired")+'</b><span>'+esc(r.item)+'</span></div>';
+        } else {
+          out.innerHTML = '<div class="verdict bad"><b>'+t("k.unknown")+'</b></div>';
+        }
+      }).catch(function(err){ out.innerHTML = ""; oops(err); });
+      return;
+    }
     var rec = S.findRedemption(code);
     if(!rec){
       out.innerHTML = '<div class="verdict bad"><b>'+t("k.unknown")+'</b></div>';
@@ -767,6 +883,24 @@
   function renderQueue(){
     var card = $("#queueCard"), box = $("#queue");
     if(!card || !box) return;
+    if(REAL){
+      clearInterval(queueTimer);
+      if(role === "player"){ card.hidden = true; return; }
+      card.hidden = false;
+      PVB.act.pendingCodes().then(function(rows){
+        rows = rows || [];
+        $("#queueCount").textContent = rows.length;
+        box.innerHTML = rows.length ? rows.map(function(r){
+          var left = new Date(r.created_at).getTime() + CODE_LIFE - Date.now();
+          var m = Math.max(0, Math.floor(left/60000)), sec = Math.max(0, Math.floor(left%60000/1000));
+          return '<button class="qrow" data-confirm="'+esc(r.code)+'"><span class="qcode">'+esc(r.code)+'</span>'+
+            '<span class="who">'+esc(r.item)+'<small>'+esc(r.player || "")+'</small></span>'+
+            '<span class="qleft">'+m+':'+(sec<10?"0":"")+sec+'</span></button>';
+        }).join("") : '<p class="empty">'+t("k.queueEmpty")+'</p>';
+      }).catch(function(){});
+      queueTimer = setInterval(renderQueue, 15000);
+      return;
+    }
     var live = liveCodes();
     clearInterval(queueTimer);
     card.hidden = false;
@@ -857,6 +991,11 @@
   document.addEventListener("click", function(e){
     if(e.target.closest("#barCheck")){ checkCode(); return; }
     var cf = e.target.closest("[data-confirm]");
+    if(cf && REAL){
+      $("#barCode").value = cf.dataset.confirm;
+      checkCode();
+      return;
+    }
     if(cf){
       S.markRedeemed(cf.dataset.confirm);
       haptic(24);
@@ -963,7 +1102,40 @@
     tag.textContent = role === "coach" ? t("c.coach") : t("c.barStaff");
     var chip = document.querySelector(".pts-chip");
     if(chip) chip.hidden = role !== "player";
-    $("#squadLine").textContent = P.squad + " · " + P.days + " · " + P.coach;
+    $("#squadLine").textContent = [P.squad, P.days, P.coach].filter(Boolean).join(" · ");
+    if(REAL) paintReal();
+  }
+
+  /* real accounts: the numbers and texts that are written into app.html for the demo */
+  function paintReal(){
+    var me = D.ME || {}, sk = D.SKILLS || [];
+    var rated = sk.filter(function(x){ return !x.unrated; });
+    var lv = me.level || 0;
+    $("#tLevel").textContent = lv.toFixed(2);
+    $("#tLevelD").textContent = rated.length ? rated.length + "/9" : "—";
+    $("#tSess").textContent = me.attendedSeason || 0;
+    $("#tSessD").textContent = "";
+    var streak = 0; for(var i=D.ATT.length-1;i>=0 && D.ATT[i];i--) streak++;
+    $("#tStreak").textContent = streak;
+    $("#tStreakD").textContent = "";
+    $("#tPtsD").textContent = "";
+    var last = rated.length ? rated.map(function(x){ return x.on; })[0] : "";
+    $("#devSub").textContent = rated.length ? t("v.lastAssess", {on:last}) : t("v.noRatings");
+    var nl = $("#notesList");
+    if(nl) nl.innerHTML = (D.NOTES || []).length ? D.NOTES.map(function(n){
+      return '<div class="note"><p>'+esc(n.body)+'</p><div class="by">'+esc(n.by)+', '+esc(n.on)+'</div></div>';
+    }).join("") : '<p class="muted small">'+t("v.noNotes")+'</p>';
+    var next = Math.floor(lv*4 + 1)/4;
+    $("#lvNext").textContent = next.toFixed(2);
+    $("#lvNow").textContent = lv.toFixed(2) + " / " + next.toFixed(2);
+    $("#lvText").textContent = t("v.lvSet");
+    $("#lvBar").style.width = Math.round((lv % 1) * 100) + "%";
+    var ac = $("#assignCard"); if(ac) ac.hidden = true;
+    var ec = $("#earnChips");
+    if(ec) ec.innerHTML = (D.EARN || []).map(function(r){ return '<span class="chip ochre">'+esc(r.k)+' +'+r.v+'</span>'; }).join("");
+    var cs = $("#coachSub"); if(cs) cs.textContent = (D.ME.club ? D.ME.club.name : "");
+    var an = $("#acadName"); if(an && D.ME.club) an.textContent = D.ME.club.name;
+    var apc = $("#addPlayerCard"); if(apc) apc.hidden = role === "player";
   }
 
   document.addEventListener("r2:lang", function(){
@@ -994,6 +1166,10 @@
     return true;
   }
   function signOut(){
+    if(REAL){
+      PVB.signOut().then(function(){ S.patch({academy:"demo-miami", account:null}); location.hash = ""; location.reload(); });
+      return;
+    }
     account = null;
     S.patch({account:null});
     closeModal();
@@ -1004,24 +1180,105 @@
     modal('<div class="acc">'+
       '<div class="avatar lg">'+esc(account.initials)+'</div>'+
       '<h3>'+esc(account.name)+'</h3>'+
+      (REAL && D.ME && D.ME.club ? '<div class="acc-mail">'+esc(D.ME.club.name)+'</div>' : '')+
       '<div class="acc-mail">'+esc(account.email)+'</div>'+
       (role !== "player" ? '<span class="roletag">'+(role === "coach" ? t("c.coach") : t("c.barStaff"))+'</span>' : '')+
       '<div class="langpick more-lang">'+I.langs.map(function(l){
         return '<button data-lang="'+l.id+'" class="'+(l.id===I.current?"on":"")+'" title="'+l.label+'">'+l.short+'</button>';
       }).join("")+'</div>'+
+      (REAL && (account.clubRole === "owner" || (PVB.state && PVB.state.isAdmin)) ? '<button class="btn btn-primary btn-sm" id="accAdmin">'+t("g.clubAdmin")+'</button> ' : '')+
       '<button class="btn btn-ghost btn-sm" id="accOut">'+t("c.signOut")+'</button>'+
     '</div>');
   }
+  /* ---------------------------------------------------------------- real accounts */
+  var gateMode = "in";   /* "in" or "up" */
+  function gateMsg(txt, ok){
+    var m = $("#gateMsg");
+    m.hidden = !txt; m.textContent = txt || "";
+    m.className = "gate-msg" + (ok ? " ok" : "");
+  }
+  function setGateMode(mode){
+    gateMode = mode;
+    $("#gateNameWrap").hidden = mode !== "up";
+    $("#gateGo").textContent = mode === "up" ? t("g.signUp") : t("g.signIn");
+    $("#gateMode").textContent = mode === "up" ? t("g.toSignIn") : t("g.toSignUp");
+    $("#gatePass").setAttribute("autocomplete", mode === "up" ? "new-password" : "current-password");
+    gateMsg("");
+  }
+
+  function mapRole(r){ return r === "player" ? "player" : (r === "staff" ? "bar" : "coach"); }
+
+  async function bootReal(){
+    if(!PVB || !PVB.ready) return false;
+    var sess = await PVB.session();
+    if(!sess) return false;
+    REAL = true;
+    document.body.classList.add("real");
+    var st = await PVB.whoami();
+    if(!st.member){ showNoClub(st); return true; }
+    if(!st.member.full_name && st.googleName){ try{ await PVB.act.setMyName(st.googleName); st.member.full_name = st.googleName; }catch(e){} }
+    S.patch({academy: "club-" + st.member.club_id, account:null});
+    await PVB.load();
+    var m = st.member;
+    account = {email: st.user.email, name: m.full_name || st.user.email, initials: D.PLAYER.initials,
+               role: mapRole(m.role), clubRole: m.role, real: true};
+    closeGate();
+    setRole(account.role);
+    renderAll(); drawAttendance();
+    if(window.r2figure) window.r2figure.mount();
+    var h = location.hash.slice(1);
+    if(h && h.indexOf("access_token") === -1) route(h);
+    return true;
+  }
+
+  function showNoClub(st){
+    openGate();
+    ["gateGoogle","gateEmailToggle","gateForm","gateLinks"].forEach(function(id){ var el = $("#"+id); if(el) el.hidden = true; });
+    $$(".gate-card .or, .gate-demo, .gate-note").forEach(function(el){ el.hidden = true; });
+    var box = $("#gateNoClub");
+    box.hidden = false;
+    box.innerHTML = '<p>'+t("g.noClub", {email: esc(st.user.email)})+'</p>'+
+      (st.isAdmin ? '<a class="btn btn-primary gate-go" href="platform.html">'+t("g.platform")+'</a>' : '')+
+      '<button class="btn btn-ghost btn-sm" id="gateOut">'+t("c.signOut")+'</button>';
+  }
+
   document.addEventListener("submit", function(e){
     if(e.target.id !== "gateForm") return;
     e.preventDefault();
-    if(!signIn(findAccount($("#gateEmail").value))) $("#gateEmail").focus();
+    var em = $("#gateEmail").value.trim(), pw = $("#gatePass").value;
+    if(!/^\S+@\S+\.\S+$/.test(em)){ $("#gateEmail").focus(); return; }
+    if(pw.length < 8){ gateMsg(t("g.pwShort")); $("#gatePass").focus(); return; }
+    $("#gateGo").disabled = true;
+    var job = gateMode === "up" ? PVB.signUp(em, pw) : PVB.signIn(em, pw);
+    job.then(function(res){
+      if(gateMode === "up" && !(res && res.session)){ gateMsg(t("g.checkMail"), true); return; }
+      return bootReal();
+    }).catch(function(err){ gateMsg((err && err.message) || "Error"); })
+      .then(function(){ $("#gateGo").disabled = false; });
   });
   document.addEventListener("click", function(e){
     var d = e.target.closest("[data-demo]");
     if(d){ signIn((D.ACCOUNTS || []).filter(function(a){ return a.role === d.dataset.demo; })[0]); return; }
     if(e.target.closest("#navAvatar")){ openAccount(); return; }
-    if(e.target.closest("#accOut") || e.target.closest("#signOut")){ signOut(); return; }
+    if(e.target.closest("#accOut") || e.target.closest("#signOut") || e.target.closest("#gateOut")){ signOut(); return; }
+    if(e.target.closest("#gateGoogle")){
+      if(!PVB || !PVB.ready){ gateMsg("Offline"); return; }
+      PVB.signInWithGoogle().catch(function(err){ gateMsg(err.message); });
+      return;
+    }
+    if(e.target.closest("#gateEmailToggle")){
+      var f = $("#gateForm"); f.hidden = !f.hidden; $("#gateLinks").hidden = f.hidden;
+      if(!f.hidden) setTimeout(function(){ $("#gateEmail").focus(); }, 30);
+      return;
+    }
+    if(e.target.closest("#gateMode")){ setGateMode(gateMode === "up" ? "in" : "up"); return; }
+    if(e.target.closest("#gateForgot")){
+      var em = $("#gateEmail").value.trim();
+      if(!/^\S+@\S+\.\S+$/.test(em)){ gateMsg(t("g.needEmail")); $("#gateEmail").focus(); return; }
+      PVB.resetPassword(em).then(function(){ gateMsg(t("g.resetSent"), true); }).catch(function(err){ gateMsg(err.message); });
+      return;
+    }
+    if(e.target.closest("#accAdmin")){ location.href = "admin.html"; return; }
   });
 
   I.set(I.initial(S.all.lang), true);
@@ -1030,8 +1287,18 @@
   applyEdits();
   renderAll();
   if(window.r2figure) window.r2figure.mount();
+  if(account && account.real){ account = null; }
   route(location.hash.slice(1) || "dash");
   if(!account) openGate();
+  bootReal().catch(function(err){ console.warn(err); oops(err); });
+  if(PVB && PVB.client){
+    PVB.client.auth.onAuthStateChange(function(ev){
+      if(ev === "PASSWORD_RECOVERY"){
+        var pw = window.prompt(t("g.newPw"));
+        if(pw && pw.length >= 8) PVB.updatePassword(pw).then(function(){ window.r2toast(t("g.pwSaved")); }).catch(oops);
+      }
+    });
+  }
 
   /* court wifi is never reliable */
   function net(){
