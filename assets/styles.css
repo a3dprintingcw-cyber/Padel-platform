@@ -820,3 +820,5 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 }
 /* demo note: a thin strip at the very top that scrolls away, never over the content */
 .proto{position:static!important;max-width:none!important;display:block;text-align:center!important;border:0;border-bottom:1px solid var(--line);border-radius:0;background:rgba(200,245,66,.06);color:var(--muted);padding:6px 14px!important;font-size:10.5px!important;letter-spacing:.06em!important;line-height:1.4;text-transform:none!important}
+/* breathing room between the "do this next" card and the score tiles */
+.nba{margin-bottom:16px}
