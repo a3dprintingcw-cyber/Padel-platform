@@ -865,3 +865,40 @@ button.avatar{border:0;cursor:pointer}
 .gate-noclub{display:grid;gap:12px;color:var(--muted);font-size:14px}
 .gate-noclub p{margin:0}
 .field textarea{width:100%}
+
+/* ===== club admin and platform panel ===== */
+.amain{padding-block:28px 80px;display:grid;gap:18px}
+.ahead h1{font-family:var(--f-display);font-size:clamp(28px,5vw,44px);text-transform:uppercase;line-height:1}
+.who-mail{margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:28vw}
+.topbar .roletag{margin-left:4px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--court);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.kpi b{display:block;font-family:var(--f-display);font-size:30px;line-height:1;color:var(--coral)}
+.kpi span{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.slipping:empty{display:none}
+.slipping h3{font-size:13px;color:#FF8A8A;margin-bottom:8px}
+.slipping .chip{margin:0 6px 6px 0}
+.atabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);padding-bottom:0}
+.atabs button{padding:10px 14px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;min-height:44px}
+.atabs button.on{color:var(--text);border-bottom-color:var(--coral)}
+.apanel{display:grid;gap:14px}
+.astack{display:grid;gap:10px}
+.aform{display:grid;gap:2px}
+.aform .btn{justify-self:start;margin-top:6px}
+.alist{display:grid;gap:8px}
+.arow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:var(--court);border:1px solid var(--line);border-radius:var(--r-s)}
+.arow-main{display:flex;flex-direction:column;flex:1 1 220px;min-width:0}
+.arow-main b{font-weight:600}
+.arow-main small{color:var(--muted);font-size:12.5px}
+.arow-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.arow-ctl select,.arow-ctl input{background:rgba(255,255,255,.05);border:1px solid var(--line-2);border-radius:var(--r-s);color:var(--text);font:inherit;font-size:13px;padding:7px 9px;min-height:36px}
+.arow-ctl input.lvl{width:72px}
+.link-btn.danger{color:#FF8A8A}
+.ochre{color:var(--ochre)}
+.tog{display:inline-flex;gap:6px;align-items:center}
+.field input[type=color]{height:44px;padding:4px}
+@media (max-width:680px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .who-mail{display:none}
+  .topbar .roletag{display:none}
+}
