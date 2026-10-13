@@ -1,10 +1,10 @@
 /* Service worker. App shell cached so the courtside wifi stops mattering. */
-var CACHE = "pv-v12";
+var CACHE = "pv-v13";
 var SHELL = [
   "./", "index.html", "app.html", "states.html", "pricing.html", "register.html", "404.html", "manifest.webmanifest",
-  "assets/styles.css?v=12", "assets/data.js?v=12", "assets/store.js?v=12", "assets/i18n.js?v=12",
-  "assets/qr.js?v=12", "assets/scan.js?v=12", "assets/site.js?v=12", "assets/figure.js?v=12", "assets/app.js?v=12",
-  "assets/regions.js?v=12", "assets/clubs.js?v=12", "assets/sales.js?v=12", "assets/site-i18n.js?v=12",
+  "assets/styles.css?v=13", "assets/data.js?v=13", "assets/store.js?v=13", "assets/i18n.js?v=13",
+  "assets/qr.js?v=13", "assets/scan.js?v=13", "assets/site.js?v=13", "assets/figure.js?v=13", "assets/app.js?v=13",
+  "assets/regions.js?v=13", "assets/clubs.js?v=13", "assets/sales.js?v=13", "assets/site-i18n.js?v=13",
   "assets/icon.svg", "assets/icon-192.png", "assets/icon-512.png"
 ];
 

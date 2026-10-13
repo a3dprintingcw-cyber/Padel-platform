@@ -804,3 +804,17 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 @media (max-width:680px){ .topnav.open .langwrap{padding:12px 0} .langwrap select{font-size:16px} }
 .more-lang{flex-wrap:wrap;margin:18px 0 0;justify-content:center}
 .more-lang button{min-width:44px;min-height:36px}
+/* ---------- shot silhouettes ---------- */
+.shotwrap{position:relative;width:100%;height:280px;display:flex;align-items:flex-end;justify-content:center}
+@media (max-width:680px){ .shotwrap{height:220px} }
+.shotimg{
+  width:100%;height:100%;
+  -webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:center bottom;mask-position:center bottom;
+}
+.shotshadow{
+  position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+  width:56%;height:9px;border-radius:50%;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.45), rgba(0,0,0,0) 70%);
+}
