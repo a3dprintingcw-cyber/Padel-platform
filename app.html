@@ -15,13 +15,32 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=15">
+<link rel="stylesheet" href="assets/styles.css?v=16">
 </head>
 <body class="app-body">
 
 <a class="skip" href="#mainStart">Skip to content</a>
 
-<div class="proto">Demo club, sample players. Try Coach and Bar up top.</div>
+<div class="gate" id="gate" hidden>
+  <div class="gate-card">
+    <div class="gate-brand"><svg class="logo-glyph" viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="8"/><path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="8" stroke-linecap="round"/><rect x="32" y="89" width="16" height="27" rx="3" fill="#F2F4F5"/><polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/></svg><span><span class="r2">Padel</span>&nbsp;Vitals</span></div>
+    <p class="gate-sub" data-i18n="c.welcome">Your training, your ratings, your progress.</p>
+    <form id="gateForm" autocomplete="on" novalidate>
+      <label class="field"><span data-i18n="c.email">Email</span>
+        <input type="email" id="gateEmail" required autocomplete="email" inputmode="email" spellcheck="false" placeholder="you@example.com"></label>
+      <button class="btn btn-primary gate-go" type="submit" data-i18n="c.continue">Continue</button>
+    </form>
+    <div class="or"><span data-i18n="c.demoAs">or try the demo as</span></div>
+    <div class="gate-demo">
+      <button class="btn btn-ghost btn-sm" data-demo="player" data-i18n="c.player">Player</button>
+      <button class="btn btn-ghost btn-sm" data-demo="coach" data-i18n="c.coach">Coach</button>
+      <button class="btn btn-ghost btn-sm" data-demo="bar" data-i18n="c.barStaff">Bar staff</button>
+    </div>
+    <p class="gate-note" data-i18n="c.demoNote">Prototype: no password yet. Your account decides what you see, players never get the coach tools.</p>
+  </div>
+</div>
+
+<div class="proto" data-i18n="c.demoStrip">Demo club with sample players. Sign out to try the coach or bar view.</div>
 <div class="netbar" id="netbar" hidden></div>
 
 <header class="appbar">
@@ -39,14 +58,10 @@
       </div>
     </div>
 
-    <div class="seg roles" role="group" aria-label="Demo role">
-      <button data-role="player" data-i18n="c.player">Player</button>
-      <button data-role="coach" data-i18n="c.coach">Coach</button>
-      <button data-role="bar" data-i18n="c.bar">Bar</button>
-    </div>
+    <span class="roletag" id="roleTag" hidden></span>
 
     <div class="pts-chip"><span data-points>1,340</span> <span data-i18n="c.pts">pts</span></div>
-    <div class="avatar" id="navAvatar"></div>
+    <button class="avatar" id="navAvatar" aria-label="Account"></button>
   </div>
 </header>
 
@@ -56,7 +71,7 @@
     <div class="side-foot">
       <div class="langpick" id="langPick"></div>
       <span data-i18n="c.signedIn">Signed in with Google</span><br><span id="sideEmail"></span><br>
-      <a href="index.html" class="signout" data-i18n="c.signOut">Sign out</a>
+      <button class="signout" id="signOut" data-i18n="c.signOut">Sign out</button>
     </div>
   </aside>
 
@@ -333,13 +348,13 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=15"></script>
-<script src="assets/store.js?v=15"></script>
-<script src="assets/i18n.js?v=15"></script>
-<script src="assets/qr.js?v=15"></script>
-<script src="assets/site.js?v=15"></script>
-<script src="assets/scan.js?v=15"></script>
-<script src="assets/figure.js?v=15"></script>
-<script src="assets/app.js?v=15"></script>
+<script src="assets/data.js?v=16"></script>
+<script src="assets/store.js?v=16"></script>
+<script src="assets/i18n.js?v=16"></script>
+<script src="assets/qr.js?v=16"></script>
+<script src="assets/site.js?v=16"></script>
+<script src="assets/scan.js?v=16"></script>
+<script src="assets/figure.js?v=16"></script>
+<script src="assets/app.js?v=16"></script>
 </body>
 </html>

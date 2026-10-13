@@ -822,3 +822,30 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .proto{position:static!important;max-width:none!important;display:block;text-align:center!important;border:0;border-bottom:1px solid var(--line);border-radius:0;background:rgba(200,245,66,.06);color:var(--muted);padding:6px 14px!important;font-size:10.5px!important;letter-spacing:.06em!important;line-height:1.4;text-transform:none!important}
 /* breathing room between the "do this next" card and the score tiles */
 .nba{margin-bottom:16px}
+
+/* ===== sign in gate: the account decides the role, there is no switch ===== */
+body.gated{overflow:hidden}
+.gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(1200px 600px at 50% -10%,rgba(200,245,66,.08),transparent 60%),var(--ink)}
+.gate-card{width:100%;max-width:380px;text-align:center;background:var(--court);border:1px solid var(--line);border-radius:20px;
+  padding:32px 26px calc(26px + env(safe-area-inset-bottom));box-shadow:0 40px 80px -30px #000}
+.gate-brand{display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--f-display);font-size:30px;text-transform:uppercase;margin-bottom:10px}
+.gate-brand .logo-glyph{width:22px;height:33px}
+.gate-sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+.gate-card .field{text-align:left}
+.gate-go{width:100%;margin-top:4px;justify-content:center}
+.gate-demo{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.gate-demo .btn{min-height:44px}
+.gate-note{margin-top:18px;font-family:var(--f-mono);font-size:10.5px;line-height:1.6;color:var(--muted)}
+.roletag{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);
+  border:1px solid rgba(200,245,66,.4);border-radius:100px;padding:5px 11px;white-space:nowrap}
+.roletag[hidden]{display:none}
+.appbar .roletag{margin-left:auto}
+.appbar .roletag:not([hidden]) ~ .pts-chip{margin-left:0}
+.signout{background:none;border:0;padding:0;color:var(--coral);text-decoration:underline;cursor:pointer;font:inherit;font-size:12px}
+.acc{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.acc .avatar.lg{margin-bottom:8px}
+.acc h3{font-family:var(--f-display);font-size:22px;text-transform:uppercase}
+.acc-mail{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-bottom:6px}
+.acc .more-lang{margin:14px 0}
+button.avatar{border:0;cursor:pointer}

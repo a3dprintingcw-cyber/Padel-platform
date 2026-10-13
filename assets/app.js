@@ -60,7 +60,22 @@
     {id:"bar",      roles:"bar",          icon:'<path d="M4 4h14l-6 7v7h3M4 4l6 7M8 18h4"/>'}
   ];
 
-  var role = S.all.role || "player";
+  /* ---------------------------------------------------------------- who is signed in
+     No backend yet, so no real authentication: the email typed at the gate is looked up
+     in D.ACCOUNTS and the account's role decides the views. Unknown emails are players.
+     Real sign in later replaces findAccount() and signIn(), nothing else. */
+  function findAccount(email){
+    var e = String(email || "").trim().toLowerCase();
+    if(!/^\S+@\S+\.\S+$/.test(e)) return null;
+    var hit = (D.ACCOUNTS || []).filter(function(a){ return a.email.toLowerCase() === e; })[0];
+    if(hit) return hit;
+    var name = e.split("@")[0].replace(/[._-]+/g, " ").trim().split(" ").map(function(w){
+      return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ") || "Player";
+    return {email:e, name:name, role:"player",
+            initials:name.split(" ").map(function(w){ return w.charAt(0); }).join("").slice(0,3).toUpperCase()};
+  }
+  var account = S.all.account || null;
+  var role = account ? account.role : "player";
 
   function navFor(r){
     var list = NAV.filter(function(n){ return n.roles.indexOf(r) !== -1; });
@@ -155,7 +170,6 @@
   function setRole(r){
     role = r;
     S.patch({role:r});
-    $$(".roles [data-role]").forEach(function(b){ b.classList.toggle("on", b.dataset.role === r); });
     document.body.dataset.role = r;
     buildNav();
     show(navFor(r)[0].id, true);
@@ -941,9 +955,14 @@
     I.apply(document);
 
     var P = D.PLAYER;
-    $("#navAvatar").textContent = P.initials;
-    $("#sideEmail").textContent = P.email;
-    $("#greeting").textContent = t("d.greeting") + ", " + P.first;
+    $("#navAvatar").textContent = account ? account.initials : P.initials;
+    $("#sideEmail").textContent = account ? account.email : P.email;
+    $("#greeting").textContent = t("d.greeting") + ", " + (account ? account.name.split(" ")[0] : P.first);
+    var tag = $("#roleTag");
+    tag.hidden = role === "player";
+    tag.textContent = role === "coach" ? t("c.coach") : t("c.barStaff");
+    var chip = document.querySelector(".pts-chip");
+    if(chip) chip.hidden = role !== "player";
     $("#squadLine").textContent = P.squad + " · " + P.days + " · " + P.coach;
   }
 
@@ -952,19 +971,67 @@
     if(window.r2figure) window.r2figure.mount();
   });
 
+  /* ---------------------------------------------------------------- sign in / out */
+  function openGate(){
+    $("#gate").hidden = false;
+    document.body.classList.add("gated");
+    setTimeout(function(){ var f = $("#gateEmail"); if(f) f.focus(); }, 60);
+  }
+  function closeGate(){
+    $("#gate").hidden = true;
+    document.body.classList.remove("gated");
+  }
+  function signIn(acc){
+    if(!acc) return false;
+    account = acc;
+    S.patch({account:acc, role:acc.role});
+    closeGate();
+    var hash = location.hash.slice(1);
+    setRole(acc.role);
+    renderAll();
+    if(window.r2figure) window.r2figure.mount();
+    if(hash) route(hash);
+    return true;
+  }
+  function signOut(){
+    account = null;
+    S.patch({account:null});
+    closeModal();
+    openGate();
+  }
+  function openAccount(){
+    if(!account) return;
+    modal('<div class="acc">'+
+      '<div class="avatar lg">'+esc(account.initials)+'</div>'+
+      '<h3>'+esc(account.name)+'</h3>'+
+      '<div class="acc-mail">'+esc(account.email)+'</div>'+
+      (role !== "player" ? '<span class="roletag">'+(role === "coach" ? t("c.coach") : t("c.barStaff"))+'</span>' : '')+
+      '<div class="langpick more-lang">'+I.langs.map(function(l){
+        return '<button data-lang="'+l.id+'" class="'+(l.id===I.current?"on":"")+'" title="'+l.label+'">'+l.short+'</button>';
+      }).join("")+'</div>'+
+      '<button class="btn btn-ghost btn-sm" id="accOut">'+t("c.signOut")+'</button>'+
+    '</div>');
+  }
+  document.addEventListener("submit", function(e){
+    if(e.target.id !== "gateForm") return;
+    e.preventDefault();
+    if(!signIn(findAccount($("#gateEmail").value))) $("#gateEmail").focus();
+  });
   document.addEventListener("click", function(e){
-    var r = e.target.closest(".roles [data-role]");
-    if(r) setRole(r.dataset.role);
+    var d = e.target.closest("[data-demo]");
+    if(d){ signIn((D.ACCOUNTS || []).filter(function(a){ return a.role === d.dataset.demo; })[0]); return; }
+    if(e.target.closest("#navAvatar")){ openAccount(); return; }
+    if(e.target.closest("#accOut") || e.target.closest("#signOut")){ signOut(); return; }
   });
 
   I.set(I.initial(S.all.lang), true);
   document.body.dataset.role = role;
-  $$(".roles [data-role]").forEach(function(b){ b.classList.toggle("on", b.dataset.role === role); });
 
   applyEdits();
   renderAll();
   if(window.r2figure) window.r2figure.mount();
   route(location.hash.slice(1) || "dash");
+  if(!account) openGate();
 
   /* court wifi is never reliable */
   function net(){

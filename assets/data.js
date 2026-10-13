@@ -11,6 +11,14 @@ window.R2 = (function(){
     first:    "Alex"
   };
 
+  /* Demo accounts. No backend yet: the email typed at sign in picks the account,
+     and the account's role decides what the app shows. Unknown emails are players. */
+  var ACCOUNTS = [
+    {email:"alex.rivera@example.com",   name:"Alex Rivera",   initials:"AR", role:"player"},
+    {email:"coach@padelvitals.demo",    name:"Diego Morales", initials:"DM", role:"coach"},
+    {email:"bar@padelvitals.demo",      name:"Kim Bennett",   initials:"KB", role:"bar"}
+  ];
+
   var COACHES = [
     {i:"DM", n:"Diego Morales",   r:"Head coach",         b:"Former pro tour player from Buenos Aires, 12 years coaching. Runs the advanced group and the level assessments.", t:["Advanced","Tactics","Video review"], l:"ES · EN"},
     {i:"SC", n:"Sofia Castillo",  r:"Fitness & kids",     b:"Sports scientist. Builds the conditioning blocks and leads the Saturday kids program.", t:["Kids 6-14","Fitness"], l:"EN · ES"},
@@ -194,7 +202,7 @@ window.R2 = (function(){
 
   DRILLS.forEach(function(d, i){ d.id = "d" + i; });
 
-  return {PLAYER:PLAYER, BODY:BODY, COACHES:COACHES, SKILLS:SKILLS, RADAR:RADAR, SHOP:SHOP,
+  return {PLAYER:PLAYER, ACCOUNTS:ACCOUNTS, BODY:BODY, COACHES:COACHES, SKILLS:SKILLS, RADAR:RADAR, SHOP:SHOP,
           DRILLS:DRILLS, FEED:FEED, HISTORY:HISTORY, ATT:ATT,
           SCHEDULE:SCHEDULE, ROSTER:ROSTER, BADGES:BADGES, EARN:EARN};
 })();
