@@ -4,7 +4,7 @@
 window.r2store = (function(){
   "use strict";
 
-  var KEY = "padelplatform.v1";
+  var KEY = "padelvitals.v1";
 
   var DEFAULTS = {
     lang:      "en",

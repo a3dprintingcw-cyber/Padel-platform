@@ -1,6 +1,6 @@
 {
-  "name": "Padel Platform",
-  "short_name": "Padel",
+  "name": "Padel Vitals",
+  "short_name": "Padel Vitals",
   "description": "Your coach ratings, training history, points and rewards at your padel club.",
   "start_url": "app.html",
   "scope": "./",

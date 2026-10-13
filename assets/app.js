@@ -267,8 +267,8 @@
              z(d.getUTCHours())+z(d.getUTCMinutes())+"00Z";
     }
     var body = [
-      "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//PadelPlatform//Padel//EN","BEGIN:VEVENT",
-      "UID:"+sess.id+"@padel-platform",
+      "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//PadelVitals//Padel//EN","BEGIN:VEVENT",
+      "UID:"+sess.id+"@padelvitals",
       "DTSTAMP:"+stamp(new Date()),
       "DTSTART:"+stamp(sess.date),
       "DTEND:"+stamp(sess.end),

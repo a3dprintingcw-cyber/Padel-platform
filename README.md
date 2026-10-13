@@ -1,4 +1,4 @@
-# Padel Platform (working name)
+# Padel Vitals 
 
 Player development app for padel clubs. Coaches rate every player who trains at the club, players log in and see their own progress. One club per state.
 
