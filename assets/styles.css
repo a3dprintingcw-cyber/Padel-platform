@@ -725,7 +725,7 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .sdot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
 .sdot.open{background:var(--good);box-shadow:0 0 0 4px rgba(91,217,138,.14)}
 .sdot.talks{background:var(--ochre)}
-.sdot.taken{background:var(--coral)}
+.sdot.taken{background:#FF5A5A}
 .states{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .st{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--court);min-height:58px}
 .st-n{display:flex;flex-direction:column;flex:1;min-width:0}
@@ -742,7 +742,7 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 .statemsg,.planmsg{margin:-4px 0 12px;font-size:13px;color:var(--muted)}
 .statemsg.open{color:var(--good)}
 .statemsg.talks{color:var(--ochre)}
-.statemsg.taken{color:var(--coral)}
+.statemsg.taken{color:#FF5A5A}
 .planmsg:empty{display:none}
 .formerr{margin:0 0 10px;padding:10px 12px;border-radius:var(--r-s);background:var(--coral-dim);color:var(--coral);font-size:13.5px}
 .btn-wa{background:#25D366;color:#062B14}
