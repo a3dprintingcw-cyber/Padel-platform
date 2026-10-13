@@ -17,7 +17,7 @@
       'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
   }
   function locale(){
-    return {en:"en-GB", es:"es-419", nl:"nl-NL", pap:"nl-CW"}[I.current] || "en-GB";
+    return {en:"en-US", es:"es-419", pt:"pt-BR", it:"it-IT", fr:"fr-FR", de:"de-DE", nl:"nl-NL", sv:"sv-SE"}[I.current] || "en-US";
   }
   function fmtDay(d){
     return new Intl.DateTimeFormat(locale(), {weekday:"short", day:"numeric", month:"short"}).format(d);
