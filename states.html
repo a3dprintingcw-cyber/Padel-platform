@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>States | Padel Platform</title>
+<meta name="description" content="One club per state. See which US states are still open.">
+<meta name="theme-color" content="#0A1622">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:title" content="States | Padel Platform">
+<meta property="og:description" content="One club per state. See which US states are still open.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=1">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="index.html"><svg class="court-glyph" viewBox="0 0 200 100" aria-hidden="true"><rect x="2" y="2" width="196" height="96" fill="none" stroke="#FF6B4A" stroke-width="5"/><line x1="100" y1="2" x2="100" y2="98" stroke="#FF6B4A" stroke-width="5"/><line x1="40" y1="2" x2="40" y2="98" stroke="#FF6B4A" stroke-width="4"/><line x1="160" y1="2" x2="160" y2="98" stroke="#FF6B4A" stroke-width="4"/></svg><span><span class="r2">Padel</span> Platform</span></a>
+    <nav class="topnav" id="topnav">
+      <a href="index.html#how">How it works</a>
+      <a href="states.html" class="here">States</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="register.html">Register your club</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg></button>
+    <a class="btn btn-ghost btn-sm" href="app.html">Try the app</a>
+  </div>
+</header>
+<section class="page-head">
+  <div class="wrap inner">
+    <div class="eyebrow">One club per state</div>
+    <h1>Is your state still open?</h1>
+    <p>Every state gets one club. The first club to sign takes it, and keeps it for as long as they stay with us.</p>
+  </div>
+</section>
+<section class="band">
+  <div class="wrap">
+    <div class="statebar">
+      <div class="statecount"><b id="openCount">52</b> <span>states open</span></div>
+      <input type="search" id="stateFind" class="find" placeholder="Find your state" autocomplete="off" spellcheck="false" aria-label="Find your state">
+    </div>
+    <div class="legend">
+      <span><i class="sdot open"></i>Open</span>
+      <span><i class="sdot talks"></i>In talks</span>
+      <span><i class="sdot taken"></i>Taken</span>
+    </div>
+    <div class="states" id="states"></div>
+    <p class="muted small" id="stateNone" hidden>No state by that name.</p>
+  </div>
+</section>
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Outside the US?</h2>
+    <p>We work country by country outside the States. Get in touch and we'll tell you if your country or region is open.</p>
+    <a class="btn btn-primary" href="register.html">Ask about your country</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <a class="brand" href="index.html" style="font-size:16px"><span class="r2">Padel</span> Platform</a>
+    <nav class="foot-nav">
+      <a href="index.html#how">How it works</a>
+      <a href="states.html">States</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="register.html">Register your club</a>
+      <a href="app.html">Try the app</a>
+    </nav>
+    <div class="mono" style="font-size:11.5px">Player development for padel clubs &middot; <span id="year"></span></div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="assets/clubs.js?v=1"></script>
+<script src="assets/site.js?v=1"></script>
+<script src="assets/sales.js?v=1"></script>
+</body>
+</html>

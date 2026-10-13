@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Platform | Player development for padel clubs</title>
+<meta name="description" content="Coaches rate every player who trains at your club. Every player logs in and sees their own progress. One club per state.">
+<meta name="theme-color" content="#0A1622">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Padel Platform | Player development for padel clubs">
+<meta property="og:description" content="Coaches rate every player. Every player sees their progress. One club per state.">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=1">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="index.html"><svg class="court-glyph" viewBox="0 0 200 100" aria-hidden="true"><rect x="2" y="2" width="196" height="96" fill="none" stroke="#FF6B4A" stroke-width="5"/><line x1="100" y1="2" x2="100" y2="98" stroke="#FF6B4A" stroke-width="5"/><line x1="40" y1="2" x2="40" y2="98" stroke="#FF6B4A" stroke-width="4"/><line x1="160" y1="2" x2="160" y2="98" stroke="#FF6B4A" stroke-width="4"/></svg><span><span class="r2">Padel</span> Platform</span></a>
+    <nav class="topnav" id="topnav">
+      <a href="index.html#how">How it works</a>
+      <a href="states.html">States</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="register.html">Register your club</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg></button>
+    <a class="btn btn-ghost btn-sm" href="app.html">Try the app</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-glow"></div>
+  <svg class="hero-court" viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><rect x="1" y="1" width="198" height="98" fill="none" stroke="#EAF2F8" stroke-width=".7"/><line x1="100" y1="1" x2="100" y2="99" stroke="#EAF2F8" stroke-width=".7"/><line x1="30" y1="1" x2="30" y2="99" stroke="#EAF2F8" stroke-width=".5"/><line x1="170" y1="1" x2="170" y2="99" stroke="#EAF2F8" stroke-width=".5"/><line x1="30" y1="50" x2="170" y2="50" stroke="#EAF2F8" stroke-width=".5"/></svg>
+  <div class="wrap hero-in">
+    <div>
+      <div class="eyebrow">For padel clubs that coach</div>
+      <h1>Your coach<br>rates it.<br><em>They see it.</em></h1>
+      <p class="hero-sub">Every player who trains at your club gets their own account. Coaches score their shots, track attendance and post drills. Players open the app and watch their level climb, session after session.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="register.html">Claim your state</a>
+        <a class="btn btn-ghost" href="app.html">Try the app</a>
+      </div>
+      <p class="hero-note">One club per state. Once your state is taken, it's taken.</p>
+    </div>
+
+    <div class="pcard">
+      <div class="pcard-top">
+        <div class="avatar" style="font-size:14px">AR</div>
+        <div>
+          <div style="font-weight:600">Alex Rivera</div>
+          <div class="eyebrow" style="margin-top:2px">Miami &middot; Advanced group</div>
+        </div>
+        <span class="tag" style="margin-left:auto;color:var(--good);border-color:rgba(91,217,138,.4)">Active</span>
+      </div>
+      <div class="pcard-rows">
+        <div class="prow"><span>Level, set by coach</span><b style="color:var(--coral)">3.25</b></div>
+        <div class="track"><i style="width:65%"></i></div>
+        <div class="prow"><span>Bandeja</span><b>6.4 <small style="color:var(--good)">&uarr; 0.8</small></b></div>
+        <div class="prow"><span>V&iacute;bora</span><b>4.9 <small style="color:var(--good)">&uarr; 0.3</small></b></div>
+        <div class="prow"><span>Attendance</span><b>92%</b></div>
+        <div class="prow"><span>Points</span><b style="color:var(--ochre)">1,340</b></div>
+        <div class="prow"><span>Next level</span><b>3.50 &middot; 7 sessions</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="strip">
+  <div class="wrap strip-in">
+    <div class="strip-item"><b>1</b> club per state</div>
+    <div class="strip-item"><b>9</b> padel skills rated by the coach</div>
+    <div class="strip-item"><b>0</b> setup fee</div>
+    <div class="strip-item"><b>2</b> languages, English and Spanish</div>
+    <div class="strip-item"><b>Free</b> for your players</div>
+  </div>
+</div>
+
+<section class="band" id="how">
+  <div class="wrap">
+    <div class="band-head">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps, one afternoon</h2>
+      <p>Your booking system stays. This sits on top of your training program and gives every player a reason to come back next week.</p>
+    </div>
+    <div class="grid g3">
+      <div class="step"><div class="step-n">1</div><div><h3>Your club signs up</h3><p>Pick the plan that fits how many players you train. Your state is locked to you while you're with us.</p></div></div>
+      <div class="step"><div class="step-n">2</div><div><h3>Coaches rate the players</h3><p>From the court, on a phone. Check players in, score a shot on a slider, post a drill for home.</p></div></div>
+      <div class="step"><div class="step-n">3</div><div><h3>Players see their progress</h3><p>Each player logs in to their own stats: level, skill ratings, attendance, coach notes, points.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="band-head">
+      <div class="eyebrow">Inside the app</div>
+      <h2>What your players open</h2>
+      <p>Installs to the home screen like a normal app. No app store, no download, works when the court wifi doesn't.</p>
+    </div>
+    <div class="grid g3">
+      <a class="feat" href="app.html#dev">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 18V9M9.5 18V4M15 18v-6M20.5 18v-9"/></svg></div>
+        <h3>Skill ratings</h3>
+        <p>Bandeja, v&iacute;bora, wall exits, volleys, positioning. Each scored out of 10 by the coach, with the change since last time.</p>
+        <span class="go">See the stats</span>
+      </a>
+      <a class="feat" href="app.html#staff">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M11 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L6.5 16.8l.9-5L3.8 8.3l5-.7z"/></svg></div>
+        <h3>Coach tools</h3>
+        <p>Check the group in, rate a shot, post a drill. Everything the coach saves lands in the player's app straight away.</p>
+        <span class="go">Open the coach view</span>
+      </a>
+      <a class="feat" href="app.html#home">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/></svg></div>
+        <h3>Home drills</h3>
+        <p>Short drills your coaches post. Players mark them done, and it counts toward their file and their points.</p>
+        <span class="go">See home training</span>
+      </a>
+      <a class="feat" href="app.html#schedule">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/></svg></div>
+        <h3>Training schedule</h3>
+        <p>Players say yes or no to each session, so the coach knows who's coming before counting heads.</p>
+        <span class="go">See the schedule</span>
+      </a>
+      <a class="feat" href="app.html#pts">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M11 7v8M8 11h6"/></svg></div>
+        <h3>Points and rewards</h3>
+        <p>Points for showing up and doing the work. Players spend them at your bar or pro shop with a scannable code.</p>
+        <span class="go">See the rewards</span>
+      </a>
+      <a class="feat" href="app.html#squad">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/></svg></div>
+        <h3>Group standings</h3>
+        <p>Leaderboards and badges inside each training group. A little competition keeps players coming back.</p>
+        <span class="go">See the standings</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="band-head">
+      <div class="eyebrow">Why clubs sign up</div>
+      <h2>What it does for your club</h2>
+    </div>
+    <div class="grid g2">
+      <div class="acad"><h3>Players stay longer</h3><p>When a player can see their level going up, they don't drift off after two months. Progress they can see is progress they pay for.</p></div>
+      <div class="acad"><h3>Your coaches look like pros</h3><p>Every lesson leaves a record: a score, a note, a drill. Parents and players see the work behind the price.</p></div>
+      <div class="acad"><h3>Nobody else in your state has it</h3><p>One club per state. Your competition across town can't sign up while you're with us.</p></div>
+      <div class="acad"><h3>More sales at the bar and shop</h3><p>Points bring players to the counter. Set the rewards yourself: a drink, a grip, club merch.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Is your state<br>still open?</h2>
+    <p>Check the map, then claim it. Founding clubs lock in their price for as long as they stay.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-primary" href="states.html">Check your state</a>
+      <a class="btn btn-ghost" href="pricing.html">See pricing</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <a class="brand" href="index.html" style="font-size:16px"><span class="r2">Padel</span> Platform</a>
+    <nav class="foot-nav">
+      <a href="index.html#how">How it works</a>
+      <a href="states.html">States</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="register.html">Register your club</a>
+      <a href="app.html">Try the app</a>
+    </nav>
+    <div class="mono" style="font-size:11.5px">Player development for padel clubs &middot; <span id="year"></span></div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="assets/site.js?v=1"></script>
+</body>
+</html>

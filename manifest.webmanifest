@@ -1,0 +1,23 @@
+{
+  "name": "Padel Platform",
+  "short_name": "Padel",
+  "description": "Your coach ratings, training history, points and rewards at your padel club.",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1622",
+  "theme_color": "#0A1622",
+  "lang": "en",
+  "categories": ["sports", "education", "lifestyle"],
+  "icons": [
+    {"src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "assets/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Points and rewards", "url": "app.html#pts"},
+    {"name": "Schedule", "url": "app.html#schedule"},
+    {"name": "Home training", "url": "app.html#home"}
+  ]
+}

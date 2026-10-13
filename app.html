@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Player App | Padel Platform</title>
+<meta name="description" content="Player app demo: coach skill ratings, schedule, points and rewards, home training, group standings and coach tools.">
+<meta name="theme-color" content="#0A1622">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=1">
+</head>
+<body class="app-body">
+
+<a class="skip" href="#mainStart">Skip to content</a>
+
+<div class="proto">Demo club with sample players. Tap Coach or Bar at the top to switch views. Changes stay on this device.</div>
+<div class="netbar" id="netbar" hidden></div>
+
+<header class="appbar">
+  <div class="appbar-in">
+    <a class="brand" href="index.html"><span class="r2">Padel</span>&nbsp;Platform</a>
+
+    <div class="switcher">
+      <button class="switch-btn" id="switchBtn" aria-expanded="false">
+        <span class="dot"></span><span id="acadName">Miami Padel Club</span>
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4.5L6 8.5L10 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="switch-menu" id="switchMenu" hidden>
+        <button data-acad="Miami Padel Club">Miami Padel Club<span class="sub">Miami, Florida, your club</span></button>
+        <button data-acad="Your club here">Your club here<span class="sub">One club per state</span></button>
+      </div>
+    </div>
+
+    <div class="seg roles" role="group" aria-label="Demo role">
+      <button data-role="player" data-i18n="c.player">Player</button>
+      <button data-role="coach" data-i18n="c.coach">Coach</button>
+      <button data-role="bar" data-i18n="c.bar">Bar</button>
+    </div>
+
+    <div class="pts-chip"><span data-points>1,340</span> <span data-i18n="c.pts">pts</span></div>
+    <div class="avatar" id="navAvatar"></div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="side">
+    <nav id="sideNav"></nav>
+    <div class="side-foot">
+      <div class="langpick" id="langPick"></div>
+      <span data-i18n="c.signedIn">Signed in with Google</span><br><span id="sideEmail"></span><br>
+      <a href="index.html" class="signout" data-i18n="c.signOut">Sign out</a>
+    </div>
+  </aside>
+
+  <main class="main" id="mainStart">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view on" id="v-dash">
+      <div class="view-head">
+        <h2 id="greeting">Welcome back</h2>
+        <p id="squadLine"></p>
+      </div>
+
+      <div class="next" id="nextWrap"></div>
+      <button class="nba" id="nba" hidden></button>
+
+      <div class="tiles">
+        <div class="tile rate"><div class="lab" data-i18n="d.rating">Level</div><div class="val">3.25</div><div class="delta">&uarr; 0.25</div></div>
+        <div class="tile"><div class="lab" data-i18n="d.sessions">Sessions</div><div class="val">48 <small data-i18n="d.thisSeason">this season</small></div><div class="delta">&uarr; 6</div></div>
+        <div class="tile streak"><div class="lab" data-i18n="d.streak">Streak</div><div class="val">11 <small data-i18n="d.inRow">in a row</small></div><div class="delta"><span data-i18n="d.best">Best</span>: 14</div></div>
+        <div class="tile pts"><div class="lab" data-i18n="nav.pts">Points</div><div class="val" data-points>1,340</div><div class="delta">&uarr; 260</div></div>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <div class="card-hd"><h3 data-i18n="d.attendance">Attendance, last 12 weeks</h3><span class="chip">92%</span></div>
+          <div id="attChart"></div>
+          <div class="goal" id="weekGoal"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3 data-i18n="d.activity">Recent activity</h3></div>
+          <div class="feed" id="feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCHEDULE ===== -->
+    <section class="view" id="v-schedule">
+      <div class="view-head">
+        <h2 data-i18n="s.title">Your schedule</h2>
+        <p data-i18n="s.sub">Say yes or no and your coach sees it straight away.</p>
+      </div>
+      <div class="sessions" id="schedList"></div>
+    </section>
+
+    <!-- ===== DEVELOPMENT ===== -->
+    <section class="view" id="v-dev">
+      <div class="view-head">
+        <h2 data-i18n="v.title">Player development</h2>
+        <p>Scored by your coach every six weeks. Last assessment: 29 September, Diego Morales.</p>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <div class="card-hd">
+            <h3 data-i18n="v.profile">Skill profile</h3>
+            <div class="pseg">
+              <button data-slide="0" class="on" data-i18n="v.hex">Hexagon</button>
+              <button data-slide="1" data-i18n="v.body">Body map</button>
+            </div>
+          </div>
+          <div class="pcarousel">
+            <div class="pslides" id="pslides">
+              <div class="pslide" id="radar"></div>
+              <div class="pslide">
+                <div class="bmap" id="bmap">
+                  <div class="bstage">
+                    <div class="bfig" id="bodyFig"></div>
+                    <div class="bcap" id="bodyCap"></div>
+                  </div>
+                  <div class="blist" id="bodyList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pfoot">
+            <div class="scale">
+              <span><i style="background:#FF5A5A"></i><span data-i18n="v.needs">needs work</span></span>
+              <span><i style="background:#FFC24B"></i><span data-i18n="v.solid">solid</span></span>
+              <span><i style="background:#5BD98A"></i><span data-i18n="v.strong">strong</span></span>
+            </div>
+            <div class="swipe" data-i18n="v.swipe">swipe to switch</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3 data-i18n="v.notes">Coach notes</h3></div>
+          <div class="note"><p>Bandeja is landing deep now, keep the racket face open on the follow through. Next block we work on the v&iacute;bora so you stop giving the net back.</p><div class="by">Diego Morales, 29 Sep</div></div>
+          <div class="note"><p>Much calmer on wall exits. Still rushing the chiquita when under pressure: slow feet, low bounce.</p><div class="by">Diego Morales, 18 Aug</div></div>
+          <div class="note"><p>Fitness block done. Lateral movement improved, good work in camp week.</p><div class="by">Sofia Castillo, 8 Aug</div></div>
+        </div>
+      </div>
+
+      <div class="card-hd stack"><h3 data-i18n="v.skills">Skills, scored out of 10</h3></div>
+      <div class="skills" id="skills"></div>
+
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="v.level">Level progression</h3><span class="chip ochre">3.50</span></div>
+        <div class="prow"><span>7 more training sessions and a v&iacute;bora score of 6.0 unlocks level 3.50</span><b class="coral">3.25 / 3.50</b></div>
+        <div class="track tall"><i style="width:65%;background:linear-gradient(90deg,var(--sea),var(--coral))"></i></div>
+      </div>
+    </section>
+
+    <!-- ===== POINTS ===== -->
+    <section class="view" id="v-pts">
+      <div class="view-head">
+        <h2 data-i18n="p.title">Points &amp; rewards</h2>
+        <p data-i18n="p.sub">Earn on court, spend at the bar.</p>
+      </div>
+
+      <div class="livecode" id="liveCode" hidden></div>
+
+      <div class="balance">
+        <div>
+          <div class="lab" data-i18n="p.balance">Your balance</div>
+          <div class="big" data-points>1,340</div>
+        </div>
+        <div class="earnwrap">
+          <div class="lab" data-i18n="p.earn">How you earn</div>
+          <div class="earn">
+            <span class="chip ochre">Training +50</span>
+            <span class="chip ochre">On time +10</span>
+            <span class="chip ochre">Camp day +100</span>
+            <span class="chip ochre">Home drill +15</span>
+            <span class="chip ochre">Bring a friend +150</span>
+            <span class="chip ochre">Tournament +200</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-hd stack"><h3 data-i18n="p.kantine">Bar &amp; shop</h3><span class="chip" data-i18n="p.inPoints">Prices in points</span></div>
+      <div class="shop" id="shop"></div>
+
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="p.history">Redemption history</h3></div>
+        <div class="feed" id="history"></div>
+      </div>
+    </section>
+
+    <!-- ===== HOME TRAINING ===== -->
+    <section class="view" id="v-home">
+      <div class="view-head">
+        <h2 data-i18n="h.title">At-home training</h2>
+        <p data-i18n="h.sub">Drills your coaches film.</p>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="drills" id="drills"></div>
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="h.assignment">This week's assignment</h3><span class="chip sea">Coach Diego</span></div>
+        <p class="muted">Three sessions before Thursday: wall control, shadow bandeja and the mobility routine. Finish all three for a 50 point bonus.</p>
+      </div>
+    </section>
+
+    <!-- ===== SQUAD ===== -->
+    <section class="view" id="v-squad">
+      <div class="view-head">
+        <h2 data-i18n="q.title">Group standings</h2>
+        <p data-i18n="q.sub">Points earned this season.</p>
+      </div>
+      <div class="card"><div class="standings" id="standings"></div></div>
+      <div class="card-hd stack"><h3 data-i18n="q.badges">Your badges</h3></div>
+      <div class="badges" id="badges"></div>
+    </section>
+
+    <!-- ===== COACHES ===== -->
+    <section class="view" id="v-coach">
+      <div class="view-head">
+        <h2>Meet the coaches</h2>
+        <p>Six coaches at Miami Padel Club. Book a private or jump to the drills they posted.</p>
+      </div>
+      <div class="cgrid" id="coachList"></div>
+    </section>
+
+    <!-- ===== COACH TOOLS ===== -->
+    <section class="view" id="v-staff">
+      <div class="view-head">
+        <h2 data-i18n="t.title">Coach tools</h2>
+        <p data-i18n="t.sub">Check the group in, score a skill, post a drill.</p>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <div class="card-hd"><h3 data-i18n="t.roster">Today's check-in</h3><span class="chip sea" id="checkCount">0</span></div>
+          <label class="field"><span data-i18n="t.session">Session</span><select id="checkSession"></select></label>
+          <div class="roster-tools">
+            <input type="search" id="rosterFind" class="find" autocomplete="off" spellcheck="false"
+                   data-i18n-attr="placeholder:t.find" placeholder="Find a player">
+            <button class="btn btn-ghost btn-sm" id="checkAll" data-i18n="t.all">All in</button>
+            <button class="btn btn-ghost btn-sm" id="checkNone" data-i18n="t.clear">Clear</button>
+          </div>
+          <div class="roster" id="roster"></div>
+        </div>
+
+        <div class="stack-col">
+          <div class="card">
+            <div class="card-hd"><h3 data-i18n="t.assess">Quick assessment</h3></div>
+            <p class="muted small" data-i18n="t.assessSub">Score a skill and the player sees it in Development.</p>
+            <label class="field"><span data-i18n="c.player">Player</span><select id="assessPlayer"></select></label>
+            <label class="field"><span data-i18n="v.skills">Skill</span><select id="assessSkill"></select></label>
+            <label class="field range">
+              <span>Score <b id="assessOut">6.0</b></span>
+              <input type="range" id="assessVal" min="0" max="10" step="0.1" value="6">
+            </label>
+            <button class="btn btn-primary btn-sm" id="saveAssess" data-i18n="c.save">Save</button>
+          </div>
+
+          <div class="card">
+            <div class="card-hd"><h3 data-i18n="t.newDrill">New home drill</h3></div>
+            <label class="field"><span data-i18n="t.drillName">Drill name</span>
+              <input type="text" id="drillName" placeholder="Wall control, 50 touches"></label>
+            <div class="field-row">
+              <label class="field"><span>Level</span>
+                <select id="drillLvl">
+                  <option>All levels</option><option>Beginner</option>
+                  <option>Intermediate</option><option>Advanced</option>
+                </select></label>
+              <label class="field"><span>Length</span><input type="text" id="drillDur" placeholder="6:12"></label>
+            </div>
+            <label class="field"><span>Kit needed</span><input type="text" id="drillKit" placeholder="Wall + ball"></label>
+            <button class="btn btn-primary btn-sm" id="publishDrill" data-i18n="t.publish">Publish to the group</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== BAR STAFF ===== -->
+    <section class="view" id="v-bar">
+      <div class="view-head">
+        <h2 data-i18n="k.title">Bar staff</h2>
+        <p data-i18n="k.sub">Scan the player's code, or type it. Confirm and the drink is theirs.</p>
+      </div>
+      <div class="card bar-card">
+        <div class="scanwrap" id="scanWrap" hidden>
+          <video id="scanVideo" playsinline muted></video>
+          <div class="scanframe" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="scanbar">
+            <button class="btn btn-ghost btn-sm" id="scanStop" data-i18n="k.scanStop">Stop</button>
+            <button class="btn btn-ghost btn-sm" id="scanTorch" hidden data-i18n="k.torch">Light</button>
+          </div>
+          <p class="scanhint" id="scanHint" data-i18n="k.scanHint">Point at the code on the player's phone.</p>
+        </div>
+
+        <button class="btn btn-primary btn-scan" id="scanStart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V5.5A1.5 1.5 0 0 1 4.5 4H7M17 4h2.5A1.5 1.5 0 0 1 21 5.5V8M21 16v2.5a1.5 1.5 0 0 1-1.5 1.5H17M7 20H4.5A1.5 1.5 0 0 1 3 18.5V16M6 12h12"/></svg>
+          <span data-i18n="k.scan">Scan the code</span>
+        </button>
+
+        <div class="or"><span data-i18n="k.or">or type it</span></div>
+
+        <label class="field"><span data-i18n="k.code">Redemption code</span>
+          <input type="text" id="barCode" class="codein" maxlength="5" autocomplete="off"
+                 inputmode="text" autocapitalize="characters" enterkeyhint="go"
+                 spellcheck="false" placeholder="7K2QM"></label>
+        <button class="btn btn-primary" id="barCheck" data-i18n="k.check">Check code</button>
+        <div id="barResult"></div>
+        <p class="muted small" id="scanNote"></p>
+      </div>
+
+      <div class="card" id="queueCard" hidden>
+        <div class="card-hd"><h3 data-i18n="k.waiting">Waiting at the bar</h3><span class="chip sea" id="queueCount">0</span></div>
+        <div class="queue" id="queue"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="tabbar"><nav id="tabNav"></nav></div>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <button class="sheet-x" id="modalClose" aria-label="Close">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/data.js?v=1"></script>
+<script src="assets/store.js?v=1"></script>
+<script src="assets/i18n.js?v=1"></script>
+<script src="assets/qr.js?v=1"></script>
+<script src="assets/site.js?v=1"></script>
+<script src="assets/scan.js?v=1"></script>
+<script src="assets/figure.js?v=1"></script>
+<script src="assets/app.js?v=1"></script>
+</body>
+</html>
