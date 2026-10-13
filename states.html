@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>States | Padel Vitals</title>
-<meta name="description" content="One club per state. See which US states are still open.">
+<title>Regions | Padel Vitals</title>
+<meta name="description" content="One club per state or region, worldwide. See which are still open in your country.">
 <meta name="theme-color" content="#0B0D0F">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta property="og:type" content="website">
-<meta property="og:title" content="States | Padel Vitals">
-<meta property="og:description" content="One club per state. See which US states are still open.">
+<meta property="og:title" content="Regions | Padel Vitals">
+<meta property="og:description" content="One club per state or region, worldwide. See which are still open in your country.">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=8">
+<link rel="stylesheet" href="assets/styles.css?v=9">
 </head>
 <body>
 <header class="topbar">
@@ -24,7 +24,7 @@
     <a class="brand" href="index.html"><svg class="logo-glyph" viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="8"/><path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="8" stroke-linecap="round"/><rect x="32" y="89" width="16" height="27" rx="3" fill="#F2F4F5"/><polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/></svg><span><span class="r2">Padel</span> Vitals</span></a>
     <nav class="topnav" id="topnav">
       <a href="index.html#how">How it works</a>
-      <a href="states.html" class="here">States</a>
+      <a href="states.html" class="here">Regions</a>
       <a href="pricing.html">Pricing</a>
       <a href="register.html">Register your club</a>
     </nav>
@@ -34,17 +34,18 @@
 </header>
 <section class="page-head">
   <div class="wrap inner">
-    <div class="eyebrow">One club per state</div>
-    <h1>Is your state still open?</h1>
-    <p>Every state gets one club. The first club to sign takes it, and keeps it for as long as they stay with us.</p>
+    <div class="eyebrow">One club per region, worldwide</div>
+    <h1>Is your region still open?</h1>
+    <p>Every state, province or region gets one club. Pick your country to see what is still open. The first club to sign takes it, and keeps it for as long as they stay.</p>
   </div>
 </section>
 <section class="band">
   <div class="wrap">
     <div class="statebar">
-      <div class="statecount"><b id="openCount">52</b> <span>states open</span></div>
-      <input type="search" id="stateFind" class="find" placeholder="Find your state" autocomplete="off" spellcheck="false" aria-label="Find your state">
+      <label class="field countrypick"><span>Country</span><select id="stateCountry"></select></label>
+      <input type="search" id="stateFind" class="find" placeholder="Find your region" autocomplete="off" spellcheck="false" aria-label="Find your region">
     </div>
+    <div class="statecount"><b id="openCount">0</b> <span id="openLabel">open</span></div>
     <div class="legend">
       <span><i class="sdot open"></i>Open</span>
       <span><i class="sdot talks"></i>In talks</span>
@@ -56,9 +57,9 @@
 </section>
 <section class="cta-band">
   <div class="wrap">
-    <h2>Outside the US?</h2>
-    <p>We work country by country outside the States. Get in touch and we'll tell you if your country or region is open.</p>
-    <a class="btn btn-primary" href="register.html">Ask about your country</a>
+    <h2>Don't see it?</h2>
+    <p>If your country or region isn't listed the way you'd expect, tell us where your club is and we'll set it up.</p>
+    <a class="btn btn-primary" href="register.html">Talk to us</a>
   </div>
 </section>
 
@@ -67,7 +68,7 @@
     <a class="brand" href="index.html" style="font-size:16px"><span class="r2">Padel</span> Vitals</a>
     <nav class="foot-nav">
       <a href="index.html#how">How it works</a>
-      <a href="states.html">States</a>
+      <a href="states.html">Regions</a>
       <a href="pricing.html">Pricing</a>
       <a href="register.html">Register your club</a>
       <a href="app.html">Try the app</a>
@@ -76,8 +77,9 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/clubs.js?v=8"></script>
-<script src="assets/site.js?v=8"></script>
-<script src="assets/sales.js?v=8"></script>
+<script src="assets/regions.js?v=9"></script>
+<script src="assets/clubs.js?v=9"></script>
+<script src="assets/site.js?v=9"></script>
+<script src="assets/sales.js?v=9"></script>
 </body>
 </html>

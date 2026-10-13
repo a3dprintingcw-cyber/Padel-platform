@@ -32,28 +32,33 @@ window.PP = (function(){
     return PLANS[PLANS.length-1];
   }
 
-  var STATES = [
-    ["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],
-    ["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["DC","Washington DC"],["FL","Florida"],
-    ["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],
-    ["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],
-    ["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],
-    ["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],
-    ["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],
-    ["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],
-    ["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],
-    ["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],
-    ["WY","Wyoming"],["PR","Puerto Rico"]
-  ].map(function(s){ return {code:s[0], name:s[1], status:"open", club:""}; });
-
-  /* ---- edit here as clubs sign ---- */
+  /* ---- edit here as clubs sign ----
+     Key is "COUNTRY|Region" exactly as written in regions.js. Whole-country territories use "Whole country".
+     status: "talks" (in talks, not signed) or "taken". Anything not listed is open. */
   var STATUS = {
-    /* "FL": {status:"talks", club:""} */
+    /* "US|Florida":        {status:"taken", club:"Miami Padel Club"}, */
+    /* "ES|Madrid":         {status:"talks", club:""}, */
+    /* "CW|Whole country":  {status:"taken", club:"R2PRO"} */
   };
-  STATES.forEach(function(s){ if(STATUS[s.code]){ s.status = STATUS[s.code].status; s.club = STATUS[s.code].club || ""; } });
+
+  var COUNTRIES = window.PV_REGIONS || [];
+  function country(code){ return COUNTRIES.filter(function(c){ return c.code === code; })[0] || null; }
+  function regions(code){
+    var c = country(code);
+    if(!c) return [];
+    return c.regions.map(function(r){
+      var st = STATUS[code + "|" + r] || {};
+      return {country:code, name:r, status:st.status || "open", club:st.club || ""};
+    });
+  }
+  function openCount(){
+    var n = 0;
+    COUNTRIES.forEach(function(c){ regions(c.code).forEach(function(r){ if(r.status === "open") n++; }); });
+    return n;
+  }
 
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
-  return {CONTACT:CONTACT, PLANS:PLANS, STATES:STATES, planFor:planFor, waLink:waLink, mailLink:mailLink};
+  return {CONTACT:CONTACT, PLANS:PLANS, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
 })();

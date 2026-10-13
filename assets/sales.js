@@ -1,4 +1,4 @@
-/* Pricing, state list and club registration. Data lives in clubs.js. */
+/* Pricing, territory list and club registration. Data lives in clubs.js and regions.js. */
 (function(){
   "use strict";
   var PP = window.PP;
@@ -19,13 +19,13 @@
           '<div class="who">'+p.who+'</div>'+
           '<div class="amt">'+usd(amt)+' <small>/ '+(yearly?"year":"month")+'</small></div>'+
           (yearly ? '<div class="save">You save '+usd(p.price*2)+'</div>' : '')+
-          '<ul><li class="excl">Your whole state, nobody else gets it</li>'+p.perks.map(function(x){ return '<li>'+x+'</li>'; }).join("")+'</ul>'+
+          '<ul><li class="excl">Your whole state or region, nobody else gets it</li>'+p.perks.map(function(x){ return '<li>'+x+'</li>'; }).join("")+'</ul>'+
           '<a class="btn '+(p.pick?"btn-primary":"btn-ghost")+'" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">Choose '+p.name+'</a>'+
         '</div>';
       }).join("");
       $("#billNote").textContent = yearly
         ? "Billed once a year, two months free."
-        : "Billed monthly. Cancel with 30 days notice, and your state opens up again.";
+        : "Billed monthly. Cancel with 30 days notice, and your region opens up again.";
     };
     document.addEventListener("click", function(e){
       var b = e.target.closest("[data-bill]");
@@ -37,42 +37,85 @@
     paint();
   }
 
-  /* ---------------------------------------------------------------- states */
+  /* ---------------------------------------------------------------- shared */
+  /* best guess at the visitor's country from the browser, US if unknown */
+  function guessCountry(){
+    var langs = (navigator.languages || [navigator.language || ""]);
+    for(var i=0;i<langs.length;i++){
+      var m = /-([A-Z]{2})$/i.exec(langs[i] || "");
+      if(m && PP.country(m[1].toUpperCase())) return m[1].toUpperCase();
+    }
+    return "US";
+  }
+  function countryOptions(sel){
+    sel.innerHTML = PP.COUNTRIES.map(function(c){ return '<option value="'+c.code+'">'+esc(c.name)+'</option>'; }).join("");
+  }
+  var LABEL = {open:"Open", talks:"In talks", taken:"Taken"};
+
+  /* ---------------------------------------------------------------- territories */
   var statesEl = $("#states");
   if(statesEl){
-    var LABEL = {open:"Open", talks:"In talks", taken:"Taken"};
-    var drawStates = function(q){
-      q = (q || "").trim().toLowerCase();
-      var list = PP.STATES.filter(function(s){ return !q || s.name.toLowerCase().indexOf(q) > -1 || s.code.toLowerCase() === q; });
-      statesEl.innerHTML = list.map(function(s){
-        var tail = s.status === "open"
-          ? '<a class="btn btn-primary btn-sm" href="register.html?state='+s.code+'">Claim</a>'
-          : '<span class="muted small">'+(s.club ? esc(s.club) : LABEL[s.status])+'</span>';
-        return '<div class="st '+s.status+'"><i class="sdot '+s.status+'"></i>'+
-          '<div class="st-n"><b>'+s.name+'</b><span>'+LABEL[s.status]+'</span></div>'+tail+'</div>';
+    var qs0 = new URLSearchParams(location.search);
+    var cSel = $("#stateCountry");
+    countryOptions(cSel);
+    cSel.value = PP.country(qs0.get("country") || "") ? qs0.get("country") : guessCountry();
+
+    var drawStates = function(){
+      var q = ($("#stateFind").value || "").trim().toLowerCase();
+      var c = PP.country(cSel.value);
+      var all = PP.regions(c.code);
+      var list = all.filter(function(r){ return !q || r.name.toLowerCase().indexOf(q) > -1; });
+      $("#openCount").textContent = all.filter(function(r){ return r.status === "open"; }).length;
+      $("#openLabel").textContent = all.length === 1 ? "open in " + c.name : (c.label.toLowerCase() + (all.length > 1 ? "s" : "") + " open in " + c.name);
+      $("#stateFind").placeholder = "Find your " + c.label.toLowerCase();
+      $("#stateFind").hidden = all.length < 6;
+      statesEl.innerHTML = list.map(function(r){
+        var title = r.name === "Whole country" ? c.name : r.name;
+        var sub = r.name === "Whole country" ? "Whole country · " + LABEL[r.status] : LABEL[r.status];
+        var tail = r.status === "open"
+          ? '<a class="btn btn-primary btn-sm" href="register.html?country='+c.code+'&region='+encodeURIComponent(r.name)+'">Claim</a>'
+          : '<span class="muted small">'+(r.club ? esc(r.club) : LABEL[r.status])+'</span>';
+        return '<div class="st '+r.status+'"><i class="sdot '+r.status+'"></i>'+
+          '<div class="st-n"><b>'+esc(title)+'</b><span>'+sub+'</span></div>'+tail+'</div>';
       }).join("");
       $("#stateNone").hidden = list.length > 0;
     };
-    $("#openCount").textContent = PP.STATES.filter(function(s){ return s.status === "open"; }).length;
-    $("#stateFind").addEventListener("input", function(e){ drawStates(e.target.value); });
-    drawStates("");
+    cSel.addEventListener("change", function(){
+      $("#stateFind").value = "";
+      history.replaceState(null, "", "?country=" + cSel.value);
+      drawStates();
+    });
+    $("#stateFind").addEventListener("input", drawStates);
+    drawStates();
   }
 
   /* ---------------------------------------------------------------- register */
   var form = $("#regForm");
   if(form){
     var qs = new URLSearchParams(location.search);
-    var stSel = $("#regState"), plSel = $("#regPlan");
+    var coSel = $("#regCountry"), stSel = $("#regState"), plSel = $("#regPlan");
 
-    stSel.innerHTML = '<option value="">Choose your state</option>' +
-      PP.STATES.map(function(s){
-        return '<option value="'+s.code+'"'+(s.status==="taken"?" disabled":"")+'>'+s.name+(s.status==="taken"?" (taken)":"")+'</option>';
-      }).join("") + '<option value="INTL">Outside the US</option>';
+    countryOptions(coSel);
+    coSel.value = PP.country(qs.get("country") || "") ? qs.get("country") : guessCountry();
+
+    var fillRegions = function(keep){
+      var c = PP.country(coSel.value), list = PP.regions(c.code);
+      $("#regStateLabel").textContent = c.label;
+      if(list.length === 1){
+        stSel.innerHTML = '<option value="'+esc(list[0].name)+'">Whole country</option>';
+      } else {
+        stSel.innerHTML = '<option value="">Choose your ' + c.label.toLowerCase() + '</option>' +
+          list.map(function(r){
+            return '<option value="'+esc(r.name)+'"'+(r.status==="taken"?" disabled":"")+'>'+esc(r.name)+(r.status==="taken"?" (taken)":"")+'</option>';
+          }).join("");
+      }
+      if(keep) stSel.value = keep;
+      showState();
+    };
+
     plSel.innerHTML = PP.PLANS.map(function(p){
       return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / month</option>';
     }).join("");
-
-    if(qs.get("state")) stSel.value = qs.get("state");
     if(qs.get("plan")) plSel.value = qs.get("plan");
     if(qs.get("billing") === "year") form.billing.value = "Yearly";
 
@@ -80,13 +123,15 @@
     plSel.addEventListener("change", function(){ planTouched = true; showPlan(); });
 
     var showState = function(){
-      var s = PP.STATES.filter(function(x){ return x.code === stSel.value; })[0], m = $("#stateMsg");
-      if(!s){ m.hidden = stSel.value !== "INTL"; m.className = "statemsg"; m.textContent = "Tell us your country in the notes and we'll check it for you."; return; }
+      var c = PP.country(coSel.value), m = $("#stateMsg");
+      var r = PP.regions(c.code).filter(function(x){ return x.name === stSel.value; })[0];
+      if(!r){ m.hidden = true; return; }
+      var where = r.name === "Whole country" ? c.name : r.name + ", " + c.name;
       m.hidden = false;
-      m.className = "statemsg " + s.status;
-      m.textContent = s.status === "open"  ? s.name + " is open. Register now and we hold it for you for 7 days."
-                    : s.status === "talks" ? s.name + " is in talks with another club, but nothing is signed. Register and you're next in line."
-                    : s.name + " is taken.";
+      m.className = "statemsg " + r.status;
+      m.textContent = r.status === "open"  ? where + " is open. Register now and we hold it for you for 7 days."
+                    : r.status === "talks" ? where + " is in talks with another club, but nothing is signed. Register and you're next in line."
+                    : where + " is taken.";
     };
     var showPlan = function(){
       var n = +$("#regPlayers").value, fit = n ? PP.planFor(n) : null, chosen = PP.PLANS.filter(function(p){ return p.id === plSel.value; })[0];
@@ -97,19 +142,22 @@
         ? n + " players fits " + fit.name + ": " + usd(fit.price) + " a month."
         : n + " players usually fits " + fit.name + ". You picked " + chosen.name + ".";
     };
+    coSel.addEventListener("change", function(){ fillRegions(""); });
     stSel.addEventListener("change", showState);
     $("#regPlayers").addEventListener("input", showPlan);
-    showState(); showPlan();
+    fillRegions(qs.get("region") || "");
+    showPlan();
 
     var message = function(){
       var f = form, plan = PP.PLANS.filter(function(p){ return p.id === f.plan.value; })[0];
-      var stName = f.state.value === "INTL" ? "Outside the US" : (stSel.options[stSel.selectedIndex] || {}).text;
+      var c = PP.country(coSel.value);
       return [
         "New club registration",
         "",
         "Club: " + f.club.value.trim(),
         "City: " + f.city.value.trim(),
-        "State: " + stName,
+        "Country: " + c.name,
+        c.label + ": " + f.state.value,
         "Contact: " + f.name.value.trim(),
         "Email: " + f.email.value.trim(),
         "Phone: " + (f.phone.value.trim() || "not given"),
@@ -124,7 +172,7 @@
       var err = $("#formErr"), bad = [];
       if(!form.club.value.trim()) bad.push("club name");
       if(!form.city.value.trim()) bad.push("city");
-      if(!form.state.value) bad.push("state");
+      if(!form.state.value) bad.push(PP.country(coSel.value).label.toLowerCase());
       if(!form.name.value.trim()) bad.push("your name");
       if(!/^\S+@\S+\.\S+$/.test(form.email.value.trim())) bad.push("a valid email");
       if(!(+form.players.value > 0)) bad.push("number of players");
@@ -145,7 +193,7 @@
       location.href = PP.mailLink("Club registration: " + form.club.value.trim(), message());
     });
 
-    $("#waDirect").href = PP.waLink("Hi, I'd like to know more about the padel player app for my club.");
+    $("#waDirect").href = PP.waLink("Hi, I'd like to know more about Padel Vitals for my club.");
     $("#waDirect").textContent = PP.CONTACT.display;
     $("#mailDirect").href = "mailto:" + PP.CONTACT.email;
     $("#mailDirect").textContent = PP.CONTACT.email;
