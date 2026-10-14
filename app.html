@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=24">
+<link rel="stylesheet" href="assets/styles.css?v=25">
 </head>
 <body class="app-body">
 
@@ -74,10 +74,20 @@
 
     <span class="roletag" id="roleTag" hidden></span>
 
+    <button class="bell" id="bellBtn" hidden aria-label="Notifications">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="bell-n" id="bellCount" hidden>0</span>
+    </button>
     <div class="pts-chip"><span data-points>1,340</span> <span data-i18n="c.pts">pts</span></div>
     <button class="avatar" id="navAvatar" aria-label="Account"></button>
   </div>
 </header>
+
+<div class="install-bar" id="installBar" hidden>
+  <span data-i18n="i.bar">Add Padel Vitals to your home screen</span>
+  <button class="btn btn-primary btn-sm" id="installGo" data-i18n="i.go">Install</button>
+  <button class="install-x" id="installNo" aria-label="Close">&times;</button>
+</div>
 
 <div class="shell">
   <aside class="side">
@@ -100,6 +110,11 @@
 
       <div class="next" id="nextWrap"></div>
       <button class="nba" id="nba" hidden></button>
+
+      <div class="card goals-card stack-b">
+        <div class="card-hd"><h3 data-i18n="g.yours">Your goals</h3></div>
+        <div id="goalsDash"></div>
+      </div>
 
       <div class="tiles">
         <div class="tile rate"><div class="lab" data-i18n="d.rating">Level</div><div class="val" id="tLevel">3.25</div><div class="delta" id="tLevelD">&uarr; 0.25</div></div>
@@ -177,6 +192,11 @@
         </div>
       </div>
 
+      <div class="card goals-card stack">
+        <div class="card-hd"><h3 data-i18n="g.yours">Your goals</h3></div>
+        <div id="goalsDev"></div>
+      </div>
+
       <div class="card-hd stack"><h3 data-i18n="v.skills">Skills, scored out of 10</h3></div>
       <div class="skills" id="skills"></div>
 
@@ -184,6 +204,10 @@
         <div class="card-hd"><h3 data-i18n="v.level">Level progression</h3><span class="chip ochre" id="lvNext">3.50</span></div>
         <div class="prow"><span id="lvText">7 more training sessions and a v&iacute;bora score of 6.0 unlocks level 3.50</span><b class="coral" id="lvNow">3.25 / 3.50</b></div>
         <div class="track tall"><i id="lvBar" style="width:65%;background:linear-gradient(90deg,var(--sea),var(--coral))"></i></div>
+        <div class="lv-actions">
+          <button class="btn btn-primary btn-sm" data-sharecard data-i18n="share.btn">Share my level</button>
+          <a class="btn btn-ghost btn-sm" id="myReport" href="report.html?demo=1" target="_blank" rel="noopener" data-i18n="r.mine">My monthly report</a>
+        </div>
       </div>
     </section>
 
@@ -274,6 +298,7 @@
         </div>
         <div class="roster" id="roster"></div>
       </div>
+      <button class="btn btn-primary gr-open" id="groupRate" data-i18n="gr.open">Rate the group</button>
     </section>
 
     <!-- ===== COACH: PLAYERS ===== -->
@@ -318,16 +343,16 @@
         <div class="card">
           <div class="card-hd"><h3 data-i18n="t.newDrill">New home drill</h3></div>
           <label class="field"><span data-i18n="t.drillName">Drill name</span>
-            <input type="text" id="drillName" placeholder="Wall control, 50 touches"></label>
+            <input type="text" id="drillName"></label>
           <div class="field-row">
             <label class="field"><span>Level</span>
               <select id="drillLvl">
                 <option>All levels</option><option>Beginner</option>
                 <option>Intermediate</option><option>Advanced</option>
               </select></label>
-            <label class="field"><span>Length</span><input type="text" id="drillDur" placeholder="6:12"></label>
+            <label class="field"><span>Length</span><input type="text" id="drillDur"></label>
           </div>
-          <label class="field"><span>Kit needed</span><input type="text" id="drillKit" placeholder="Wall + ball"></label>
+          <label class="field"><span>Kit needed</span><input type="text" id="drillKit"></label>
           <label class="field"><span data-i18n="t.video">Video link (optional)</span><input type="url" id="drillVideo" inputmode="url" placeholder="https://youtu.be/..."></label>
           <button class="btn btn-primary btn-sm" id="publishDrill" data-i18n="t.publish">Publish to the group</button>
         </div>
@@ -391,15 +416,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=24"></script>
-<script src="assets/store.js?v=24"></script>
-<script src="assets/i18n.js?v=24"></script>
-<script src="assets/qr.js?v=24"></script>
-<script src="assets/site.js?v=24"></script>
-<script src="assets/scan.js?v=24"></script>
-<script src="assets/figure.js?v=24"></script>
+<script src="assets/data.js?v=25"></script>
+<script src="assets/store.js?v=25"></script>
+<script src="assets/i18n.js?v=25"></script>
+<script src="assets/qr.js?v=25"></script>
+<script src="assets/site.js?v=25"></script>
+<script src="assets/scan.js?v=25"></script>
+<script src="assets/figure.js?v=25"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/backend.js?v=24"></script>
-<script src="assets/app.js?v=24"></script>
+<script src="assets/backend.js?v=25"></script>
+<script src="assets/app.js?v=25"></script>
 </body>
 </html>

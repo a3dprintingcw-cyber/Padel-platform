@@ -1,10 +1,11 @@
 /* Service worker. App shell cached so the courtside wifi stops mattering. */
-var CACHE = "pv-v24";
+var V = "25";
+var CACHE = "pv-v" + V;
 var SHELL = [
   "./", "index.html", "app.html", "states.html", "pricing.html", "register.html", "404.html", "manifest.webmanifest",
-  "assets/styles.css?v=22", "assets/data.js?v=22", "assets/store.js?v=22", "assets/i18n.js?v=22",
-  "assets/qr.js?v=22", "assets/scan.js?v=22", "assets/site.js?v=22", "assets/figure.js?v=22", "assets/app.js?v=22",
-  "assets/regions.js?v=22", "assets/clubs.js?v=22", "assets/sales.js?v=22", "assets/site-i18n.js?v=22",
+  "assets/styles.css?v="+V, "assets/data.js?v="+V, "assets/store.js?v="+V, "assets/i18n.js?v="+V,
+  "assets/qr.js?v="+V, "assets/scan.js?v="+V, "assets/site.js?v="+V, "assets/figure.js?v="+V, "assets/app.js?v="+V,
+  "assets/regions.js?v="+V, "assets/clubs.js?v="+V, "assets/sales.js?v="+V, "assets/site-i18n.js?v="+V,
   "assets/icon.svg", "assets/icon-192.png", "assets/icon-512.png"
 ];
 
@@ -49,5 +50,23 @@ self.addEventListener("fetch", function(e){
       return res;
     }).catch(function(){ return m; });
     return m || net;
+  }));
+});
+
+/* phone notifications */
+self.addEventListener("push", function(e){
+  var d = {};
+  try{ d = e.data ? e.data.json() : {}; }catch(err){ d = {body: e.data ? e.data.text() : ""}; }
+  e.waitUntil(self.registration.showNotification(d.title || "Padel Vitals", {
+    body: d.body || "", icon: "assets/icon-192.png", badge: "assets/icon-192.png",
+    data: {url: d.url || "app.html"}, tag: d.tag || undefined
+  }));
+});
+self.addEventListener("notificationclick", function(e){
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || "app.html";
+  e.waitUntil(self.clients.matchAll({type:"window", includeUncontrolled:true}).then(function(list){
+    for(var i = 0; i < list.length; i++){ if(list[i].url.indexOf("app.html") !== -1 && "focus" in list[i]) return list[i].focus(); }
+    return self.clients.openWindow(url);
   }));
 });

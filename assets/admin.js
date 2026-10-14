@@ -183,7 +183,8 @@
           (m.role === "owner" ? '<span class="chip">Owner</span>' :
           '<select data-m-role="'+m.id+'">'+["coach","staff","player"].map(function(r){ return '<option value="'+r+'"'+(r===m.role?" selected":"")+'>'+ROLES[r]+'</option>'; }).join("")+'</select>')+
           (m.role === "player" ? '<select data-m-group="'+m.id+'">'+groupOptions(m.group_id)+'</select>'+
-            '<input class="lvl" type="number" step="0.25" min="0" max="7" value="'+Number(m.level).toFixed(2)+'" data-m-level="'+m.id+'" aria-label="Level">' : '')+
+            '<input class="lvl" type="number" step="0.25" min="0" max="7" value="'+Number(m.level).toFixed(2)+'" data-m-level="'+m.id+'" aria-label="Level">'+
+            '<a class="link-btn" href="report.html?player='+m.id+'" target="_blank" rel="noopener">Report</a>' : '')+
           (m.role !== "owner" ? '<button class="link-btn danger" data-m-remove="'+m.id+'">Remove</button>' : '')+
         '</div></div>';
     }).join("") || '<p class="muted">Nobody yet. Add your coaches and players above.</p>';

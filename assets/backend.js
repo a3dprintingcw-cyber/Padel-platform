@@ -124,7 +124,7 @@ window.PV = (function(){
         .gte("starts_at", new Date(now.getTime() - 12*36e5).toISOString()).lte("starts_at", until).order("starts_at"),
       sb.rpc("session_counts", {p_club: cid}),
       sb.from("rsvps").select("session_id, status").eq("member_id", me.id),
-      sb.from("ratings").select("skill, score, created_at, coach_id").eq("player_id", me.id).order("created_at", {ascending:false}),
+      sb.from("ratings").select("skill, score, created_at, coach_id, video_path").eq("player_id", me.id).order("created_at", {ascending:false}),
       sb.rpc("club_skill_averages", {p_club: cid}),
       sb.from("notes").select("body, created_at, coach_id").eq("player_id", me.id).order("created_at", {ascending:false}).limit(6),
       sb.from("drills").select("id, title, level, duration, kit, video_url, created_by, created_at").eq("club_id", cid).order("created_at", {ascending:false}),
@@ -133,13 +133,16 @@ window.PV = (function(){
       sb.from("rewards").select("id, name, detail, icon, cost").eq("club_id", cid).eq("active", true).order("cost"),
       sb.from("redemptions").select("code, item, cost, status, created_at").eq("member_id", me.id).order("created_at", {ascending:false}).limit(30),
       sb.from("attendance").select("session_id, created_at").eq("member_id", me.id).gte("created_at", since),
-      sb.rpc("club_standings", {p_club: cid})
+      sb.rpc("club_standings", {p_club: cid}),
+      sb.from("goals").select("id, skill, target, start_score, due, done_at, created_at").eq("player_id", me.id).order("created_at", {ascending:false}),
+      sb.from("notifications").select("id, kind, data, read_at, created_at").eq("member_id", me.id).order("created_at", {ascending:false}).limit(30)
     ]);
     q.forEach(function(r){ if(r.error) console.warn("load:", r.error.message); });
     var members = q[0].data || [], groups = q[1].data || [], sessions = q[2].data || [], counts = q[3].data || [],
         rsvps = q[4].data || [], ratings = q[5].data || [], avgs = q[6].data || [], notes = q[7].data || [],
         drills = q[8].data || [], done = q[9].data || [], ledger = q[10].data || [], rewards = q[11].data || [],
-        reds = q[12].data || [], att = q[13].data || [], standings = q[14].data || [];
+        reds = q[12].data || [], att = q[13].data || [], standings = q[14].data || [],
+        goals = q[15].data || [], notifs = q[16].data || [];
     state.members = members;
 
     var byId = {}; members.forEach(function(m){ byId[m.id] = m; });
@@ -224,6 +227,17 @@ window.PV = (function(){
       {k:"Bring a friend", v:rules.friend || 150}, {k:"Club tournament", v:rules.tournament || 200}
     ];
 
+    /* every rating, oldest first, per shot: the progress charts */
+    R2.HISTORY = {};
+    ratings.slice().reverse().forEach(function(r){
+      (R2.HISTORY[r.skill] = R2.HISTORY[r.skill] || []).push({v:Number(r.score), at:r.created_at, on:dayMonth(r.created_at), video:r.video_path || null});
+    });
+    R2.GOALS = goals.map(function(g){
+      var l = latest[g.skill];
+      return {id:g.id, skill:g.skill, target:Number(g.target), start:Number(g.start_score), now: l ? Number(l.score) : Number(g.start_score),
+              due:g.due, done:!!g.done_at};
+    });
+    R2.NOTIFS = notifs;
     R2.NOTES = notes.map(function(n){ return {body:n.body, by:nm(n.coach_id), on:dayMonth(n.created_at)}; });
     R2.GROUPS = groups;
     R2.ME = {id:me.id, role:me.role, level:Number(me.level), club:c, attendedSeason: (std[me.id] || {}).sessions || att.length};
@@ -270,9 +284,10 @@ window.PV = (function(){
   async function playerDetail(memberId){
     var since = new Date(Date.now() - 84*864e5).toISOString();
     var q = await Promise.all([
-      sb.from("ratings").select("skill, score, created_at, coach_id").eq("player_id", memberId).order("created_at", {ascending:false}),
+      sb.from("ratings").select("skill, score, created_at, coach_id, video_path").eq("player_id", memberId).order("created_at", {ascending:false}),
       sb.from("notes").select("body, created_at, coach_id").eq("player_id", memberId).order("created_at", {ascending:false}).limit(5),
-      sb.from("attendance").select("session_id", {count:"exact", head:true}).eq("member_id", memberId).gte("created_at", since)
+      sb.from("attendance").select("session_id", {count:"exact", head:true}).eq("member_id", memberId).gte("created_at", since),
+      sb.from("goals").select("id, skill, target, start_score, due, done_at").eq("player_id", memberId).order("created_at", {ascending:false})
     ]);
     var latest = {}, prev = {};
     (q[0].data || []).forEach(function(r){
@@ -285,7 +300,13 @@ window.PV = (function(){
                 on: l ? dayMonth(l.created_at) : "", unrated: !l};
       }),
       notes: (q[1].data || []).map(function(n){ return {body:n.body, on:dayMonth(n.created_at), by:nameOf(n.coach_id)}; }),
-      sessions: q[2].count || 0
+      sessions: q[2].count || 0,
+      goals: (q[3].data || []).map(function(g){
+        var l = latest[g.skill];
+        return {id:g.id, skill:g.skill, target:Number(g.target), start:Number(g.start_score), now: l ? Number(l.score) : Number(g.start_score), due:g.due, done:!!g.done_at};
+      }),
+      history: (function(){ var h = {}; (q[0].data || []).slice().reverse().forEach(function(r){
+        (h[r.skill] = h[r.skill] || []).push({v:Number(r.score), on:dayMonth(r.created_at), video:r.video_path || null}); }); return h; })()
     };
   }
 
@@ -339,7 +360,43 @@ window.PV = (function(){
       return sb.from("members").insert({club_id:state.club.id, email:email.trim().toLowerCase(), full_name:name || "",
                                         role:role || "player", group_id:groupId || null, status:"invited"}).select().single().then(fail);
     },
-    setMyName: function(name){ return sb.rpc("set_my_name", {p_name:name}).then(fail); }
+    setMyName: function(name){ return sb.rpc("set_my_name", {p_name:name}).then(fail); },
+    rateMany: function(list){
+      if(!list.length) return Promise.resolve();
+      return sb.from("ratings").insert(list.map(function(x){
+        return {club_id:state.club.id, player_id:x.player, coach_id:state.member.id, skill:x.skill, score:x.score, video_path:x.video || null};
+      })).then(fail);
+    },
+    rateWithClip: function(playerId, skill, score, path){
+      return sb.from("ratings").insert({club_id:state.club.id, player_id:playerId, coach_id:state.member.id, skill:skill, score:score, video_path:path || null}).then(fail);
+    },
+    uploadClip: async function(playerId, file){
+      var ext = ((file.name || "").split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      var path = state.club.id + "/" + playerId + "/" + Date.now() + "." + ext;
+      var r = await sb.storage.from("clips").upload(path, file, {contentType: file.type || "video/mp4", upsert:false});
+      fail(r);
+      return path;
+    },
+    clipUrl: async function(path){
+      var r = await sb.storage.from("clips").createSignedUrl(path, 3600);
+      return fail(r).signedUrl;
+    },
+    setGoal: function(playerId, skill, target, start, due){
+      return sb.from("goals").insert({club_id:state.club.id, player_id:playerId, coach_id:state.member.id, skill:skill,
+                                      target:target, start_score:start || 0, due:due || null}).then(fail);
+    },
+    deleteGoal: function(id){ return sb.from("goals").delete().eq("id", id).then(fail); },
+    markRead: function(){
+      return sb.from("notifications").update({read_at:new Date().toISOString()}).eq("member_id", state.member.id).is("read_at", null).then(fail);
+    },
+    report: function(memberId, from, to){
+      return sb.rpc("player_report", {p_member:memberId, p_from:from, p_to:to}).then(fail);
+    },
+    savePush: function(sub){
+      var j = sub.toJSON();
+      return sb.from("push_subs").upsert({endpoint:j.endpoint, member_id:state.member.id, club_id:state.club.id,
+                                          p256dh:j.keys.p256dh, auth:j.keys.auth}).then(fail);
+    }
   };
 
   return {

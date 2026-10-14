@@ -386,16 +386,16 @@
                 : t("v.noChange");
       /* Tapping a skill should show that shot being played, which is the whole point
          of having drawn the poses. Cards with no pose stay plain rather than lying. */
-      var hasShot = window.r2figure && window.r2figure.shotIndex(s.n) >= 0;
-      var tag = hasShot ? "button" : "div";
-      return '<'+tag+' class="skill'+(hasShot?" tap":"")+'"'+(hasShot?' data-shot-key="'+esc(s.n)+'"':'')+'>'+
-        '<div class="skill-top"><div><div class="skill-name">'+s.n+'</div><div class="skill-es">'+s.es+'</div></div>'+
-        '<div class="skill-score">'+v.toFixed(1)+'<small>/10</small></div></div>'+
+      var hist = (D.HISTORY && D.HISTORY[s.n]) || [];
+      var hasClip = hist.length && hist[hist.length-1].video;
+      return '<button class="skill tap" data-hist="'+esc(s.n)+'">'+
+        '<div class="skill-top"><div><div class="skill-name">'+s.n+(hasClip ? ' <span class="clip-dot" title="Video">&#9654;</span>' : '')+'</div><div class="skill-es">'+s.es+'</div></div>'+
+        '<div class="skill-score">'+(s.unrated ? "–" : v.toFixed(1))+'<small>/10</small></div></div>'+
         '<div class="track"><i style="width:'+(v*10)+'%"></i></div>'+
-        '<div class="skill-foot"><span>'+delta+'</span><span>'+s.by+' · '+s.on+'</span></div>'+
-        (hasShot ? '<span class="skill-cue">'+t("v.seeShot")+
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>' : '')+
-        '</'+tag+'>';
+        '<div class="skill-foot"><span>'+delta+'</span><span>'+[s.by, s.on].filter(Boolean).join(' · ')+'</span></div>'+
+        '<span class="skill-cue">'+t("v.progress")+
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>'+
+        '</button>';
     }).join("");
   }
 
@@ -830,6 +830,7 @@
 
   var plQuery = "", plGroup = "", openPid = null, sheetSkill = null;
   var demoRatings = {};   /* demo only: what the coach scored this visit */
+  var demoGoals = {};
 
   function seeded(str){ var h = 0; for(var i = 0; i < str.length; i++) h = (h*31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
 
@@ -844,7 +845,15 @@
       var v = Math.max(2, Math.min(9.5, p.rating * 1.75 + ((r % 21) - 10) / 10));
       return {n:s.n, v:Math.round(v*10)/10, d:((r % 9) - 3) / 10, on:"29 Sep", unrated:false};
     });
-    return {skills:skills, sessions:p.streak || 0,
+    demoExtras();
+    if(!demoGoals[p.id]) demoGoals[p.id] = p.me ? D.GOALS : [];
+    var hist = {};
+    skills.forEach(function(sk){ hist[sk.n] = p.me && D.HISTORY[sk.n] ? D.HISTORY[sk.n] : [{v:sk.v, on:sk.on, video:null}]; });
+    return {skills:skills, sessions:p.streak || 0, history:hist,
+            goals: demoGoals[p.id].map(function(g){
+              var cur = skills.filter(function(x){ return x.n === g.skill; })[0];
+              return Object.assign({}, g, {now: cur ? cur.v : g.now, done: g.done || (cur && cur.v >= g.target)});
+            }),
             notes: p.me ? [{body:"Bandeja is coming along. Keep the elbow high and finish the swing toward the side glass.", on:"29 Sep", by:"Diego Morales"}] : []};
   }
 
@@ -890,7 +899,7 @@
       '</div>'+
       (det ? '<div class="eyebrow ps-eb">'+t("t.tapSkill")+'</div><div class="ps-skills">'+skills.map(function(s){
         return '<button class="ps-skill'+(s.n === sheetSkill ? " on" : "")+'" data-pskill="'+esc(s.n)+'">'+
-          '<span>'+esc(s.n)+'</span>'+
+          '<span>'+esc(s.n)+((det.history && det.history[s.n] && det.history[s.n].length && det.history[s.n][det.history[s.n].length-1].video) ? ' <span class="clip-dot">&#9654;</span>' : '')+'</span>'+
           '<span class="track"><i style="width:'+(s.unrated ? 0 : s.v*10)+'%"></i></span>'+
           '<b>'+(s.unrated ? "–" : s.v.toFixed(1))+'</b>'+
           (s.d ? '<em class="'+(s.d > 0 ? "up" : "down")+'">'+(s.d > 0 ? "+" : "")+s.d.toFixed(1)+'</em>' : '<em></em>')+
@@ -900,13 +909,24 @@
         '<div class="ps-rate-hd"><b>'+esc(sheetSkill)+'</b><span class="ps-score" id="psOut">'+start.toFixed(1)+'</span></div>'+
         '<input type="range" id="psVal" min="0" max="10" step="0.1" value="'+start+'">'+
         '<textarea id="psNote" rows="2" placeholder="'+esc(t("t.notePh"))+'"></textarea>'+
+        '<label class="clip-btn"><input type="file" accept="video/*" capture="environment" id="psClip">'+
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>'+
+          '<span id="psClipName">'+t("t.addVideo")+'</span></label>'+
         '<button class="btn btn-primary" id="psSave">'+t("t.saveRating")+'</button>'+
       '</div>'+
+      '<div class="eyebrow ps-eb">'+t("g.title")+'</div>'+
+      '<div class="ps-goals">'+(det.goals.length ? det.goals.map(function(g){ return goalBar(Object.assign({coachCanDelete:true}, g)); }).join("") : '<p class="muted small">'+t("g.noneCoach")+'</p>')+'</div>'+
+      '<div class="ps-goalform" id="psGoalForm" hidden>'+
+        '<div class="field-row"><label class="field"><span>'+t("g.target")+' · '+esc(sheetSkill)+'</span><input type="number" id="psGoalT" min="0" max="10" step="0.1" value="'+Math.min(10, (start + 1)).toFixed(1)+'"></label>'+
+        '<label class="field"><span>'+t("g.dueLabel")+'</span><input type="date" id="psGoalD"></label></div>'+
+        '<button class="btn btn-primary btn-sm" id="psGoalSave">'+t("g.save")+'</button></div>'+
+      '<button class="btn btn-ghost btn-sm" id="psGoalNew">'+t("g.new", {skill:sheetSkill})+'</button>'+
       '<div class="eyebrow ps-eb">'+t("v.notes")+'</div>'+
       (det.notes.length ? det.notes.map(function(n){
         return '<div class="ps-note"><p>'+esc(n.body)+'</p><small>'+esc(n.on)+(n.by ? ' · '+esc(n.by) : '')+'</small></div>';
       }).join("") : '<p class="muted small">'+t("t.noNotesYet")+'</p>')
       : '<p class="muted small ps-load">…</p>')+
+      '<a class="btn btn-ghost btn-sm ps-report" href="'+reportUrl(p.id)+'" target="_blank" rel="noopener">'+t("r.open")+'</a>'+
     '</div>';
   }
 
@@ -973,16 +993,55 @@
         openPlayer(pl.id, true);
         return;
       }
-      var jobs = [PVB.act.rate(pl.id, skill, score)];
-      if(note) jobs.push(PVB.act.note(pl.id, note));
+      var clip = $("#psClip") && $("#psClip").files[0];
       $("#psSave").disabled = true;
-      Promise.all(jobs).then(function(){ window.r2toast(msg); openPlayer(pl.id, true); }).catch(function(err){ oops(err); $("#psSave").disabled = false; });
+      if(clip){ $("#psClipName").textContent = t("t.uploading"); }
+      var up = clip ? PVB.act.uploadClip(pl.id, clip) : Promise.resolve(null);
+      up.then(function(path){
+        var jobs = [PVB.act.rateWithClip(pl.id, skill, score, path)];
+        if(note) jobs.push(PVB.act.note(pl.id, note));
+        return Promise.all(jobs);
+      }).then(function(){ window.r2toast(msg + (clip ? " · ▶" : "")); openPlayer(pl.id, true); })
+        .catch(function(err){ oops(err); $("#psSave").disabled = false; if(clip) $("#psClipName").textContent = clip.name; });
     }
   });
 
   document.addEventListener("input", function(e){
     if(e.target.id === "psVal") $("#psOut").textContent = parseFloat(e.target.value).toFixed(1);
     if(e.target.id === "plFind"){ plQuery = e.target.value; renderPlayers(); }
+  });
+
+  document.addEventListener("change", function(e){
+    if(e.target.id !== "psClip") return;
+    var f = e.target.files[0];
+    if(!f) return;
+    if(!REAL){ e.target.value = ""; window.r2toast(t("t.videoDemo")); return; }
+    if(f.size > 50 * 1024 * 1024){ e.target.value = ""; window.r2toast(t("t.videoBig")); return; }
+    $("#psClipName").textContent = f.name;
+    e.target.closest(".clip-btn").classList.add("on");
+  });
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#psGoalNew")){ var f = $("#psGoalForm"); f.hidden = !f.hidden; return; }
+    var del = e.target.closest("[data-delgoal]");
+    if(del && openPid){
+      if(!window.confirm(t("g.delete"))) return;
+      if(!REAL){ demoGoals[openPid] = (demoGoals[openPid] || []).filter(function(g){ return g.id !== del.dataset.delgoal; }); openPlayer(openPid, true); return; }
+      PVB.act.deleteGoal(del.dataset.delgoal).then(function(){ openPlayer(openPid, true); }).catch(oops);
+      return;
+    }
+    if(e.target.closest("#psGoalSave") && openPid){
+      var target = Math.round(parseFloat($("#psGoalT").value) * 10) / 10, due = $("#psGoalD").value || null;
+      if(isNaN(target) || target < 0 || target > 10){ $("#psGoalT").focus(); return; }
+      var cur = parseFloat(($(".ps-skill.on b") || {}).textContent) || 0;
+      var pid = openPid, skill = sheetSkill;
+      if(!REAL){
+        demoGoals[pid] = demoGoals[pid] || [];
+        demoGoals[pid].unshift({id:"g" + Date.now(), skill:skill, target:target, start:cur, now:cur, due:due, done:false});
+        window.r2toast(t("g.set")); openPlayer(pid, true); return;
+      }
+      PVB.act.setGoal(pid, skill, target, cur, due).then(function(){ window.r2toast(t("g.set")); openPlayer(pid, true); }).catch(oops);
+    }
   });
 
   /* ---------------------------------------------------------------- coach: schedule */
@@ -1050,6 +1109,390 @@
   function refreshDrillCounts(){
     if(!REAL || role !== "coach") return;
     PVB.drillCounts().then(function(c){ drillDoneCounts = c; renderCDrills(); }).catch(function(){});
+  }
+
+  /* ================================================================ demo extras
+     The sample club needs history, goals and notifications too, or the demo lies. */
+  function demoExtras(){
+    if(REAL || D.__extras) return;
+    D.__extras = true;
+    var days = [168, 126, 84, 42, 14];
+    D.HISTORY = {};
+    D.SKILLS.forEach(function(sk){
+      var r = seeded(sk.n), end = sk.v, startV = Math.max(1.5, end - 1.2 - (r % 10) / 10);
+      D.HISTORY[sk.n] = days.map(function(d, i){
+        var v = i === days.length - 1 ? end : Math.round((startV + (end - startV) * (i / (days.length - 1)) + ((r >> i) % 5 - 2) / 10) * 10) / 10;
+        var at = new Date(Date.now() - d * 864e5);
+        return {v:Math.max(0, Math.min(10, v)), at:at.toISOString(), on:at.toLocaleDateString(locale(), {day:"numeric", month:"short"}), video:null};
+      });
+    });
+    D.GOALS = [
+      {id:"g1", skill:"Víbora", target:6.5, start:4.2, now:4.9, due:"2026-12-15", done:false},
+      {id:"g2", skill:"Bandeja", target:6.0, start:5.1, now:6.4, due:"2026-10-31", done:true}
+    ];
+    var ago = function(h){ return new Date(Date.now() - h * 36e5).toISOString(); };
+    D.NOTIFS = [
+      {id:"n1", kind:"rating", data:{by:"Diego Morales", shots:[{skill:"Bandeja", score:6.4}, {skill:"Wall exit", score:7.1}]}, read_at:null, created_at:ago(3)},
+      {id:"n2", kind:"drill", data:{title:"Wall control, 50 touches"}, read_at:null, created_at:ago(20)},
+      {id:"n3", kind:"goaldone", data:{skill:"Bandeja", target:6.0}, read_at:ago(30), created_at:ago(50)},
+      {id:"n4", kind:"levelup", data:{level:3.25, from:3.0}, read_at:ago(200), created_at:ago(240)}
+    ];
+  }
+
+  /* ================================================================ progress per shot */
+
+  function lineChart(points, goal){
+    if(!points.length) return '<p class="muted small">'+t("v.noRatings")+'</p>';
+    var W = 320, H = 150, px = 18, py = 16;
+    var xs = points.length === 1 ? [W/2] : points.map(function(_, i){ return px + i * (W - 2*px) / (points.length - 1); });
+    var y = function(v){ return H - py - (v / 10) * (H - 2*py); };
+    var path = points.map(function(p, i){ return (i ? "L" : "M") + xs[i].toFixed(1) + " " + y(p.v).toFixed(1); }).join(" ");
+    var area = path + " L" + xs[xs.length-1].toFixed(1) + " " + (H-py) + " L" + xs[0].toFixed(1) + " " + (H-py) + " Z";
+    var grid = [2,4,6,8].map(function(g){ return '<line x1="0" x2="'+W+'" y1="'+y(g)+'" y2="'+y(g)+'" class="lc-grid"/><text x="2" y="'+(y(g)-3)+'" class="lc-ax">'+g+'</text>'; }).join("");
+    var gl = goal ? '<line x1="0" x2="'+W+'" y1="'+y(goal)+'" y2="'+y(goal)+'" class="lc-goal"/><text x="'+(W-4)+'" y="'+(y(goal)-4)+'" class="lc-goal-t" text-anchor="end">'+t("g.target")+' '+goal.toFixed(1)+'</text>' : '';
+    var dots = points.map(function(p, i){
+      return '<circle cx="'+xs[i].toFixed(1)+'" cy="'+y(p.v).toFixed(1)+'" r="'+(i === points.length-1 ? 5 : 3.5)+'" class="lc-dot'+(p.video ? ' vid' : '')+'"/>';
+    }).join("");
+    return '<svg class="lchart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(t("v.progress"))+'">'+
+      '<defs><linearGradient id="lcg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#C8F542" stop-opacity=".28"/><stop offset="1" stop-color="#C8F542" stop-opacity="0"/></linearGradient></defs>'+
+      grid + gl + '<path d="'+area+'" fill="url(#lcg)"/><path d="'+path+'" class="lc-line"/>' + dots +
+      '</svg><div class="lc-dates"><span>'+esc(points[0].on)+'</span><span>'+esc(points[points.length-1].on)+'</span></div>';
+  }
+
+  function goalBar(g){
+    var span = Math.max(0.1, g.target - g.start), pct = Math.max(0, Math.min(100, (g.now - g.start) / span * 100));
+    if(g.done) pct = 100;
+    var due = g.due ? new Date(g.due + "T12:00:00").toLocaleDateString(locale(), {day:"numeric", month:"short"}) : "";
+    return '<div class="fgoal'+(g.done ? " done" : "")+'">'+
+      '<div class="fgoal-hd"><b>'+esc(g.skill)+'</b><span>'+(g.done ? '&#10003; '+t("g.reached") : g.now.toFixed(1)+' &rarr; <b>'+g.target.toFixed(1)+'</b>')+'</span></div>'+
+      '<div class="track"><i style="width:'+pct+'%"></i></div>'+
+      (due && !g.done ? '<small>'+t("g.by")+' '+esc(due)+'</small>' : '')+
+      (g.coachCanDelete ? '<button class="fgoal-x" data-delgoal="'+g.id+'" aria-label="Remove">&times;</button>' : '')+
+    '</div>';
+  }
+
+  function renderGoals(){
+    demoExtras();
+    var list = (D.GOALS || []);
+    var html = list.length ? list.map(goalBar).join("") : '<p class="muted small">'+t("g.none")+'</p>';
+    ["#goalsDash", "#goalsDev"].forEach(function(sel){ var el = $(sel); if(el) el.innerHTML = html; });
+    $$(".goals-card").forEach(function(c){ c.hidden = role !== "player"; });
+  }
+
+  function openHistory(skill){
+    demoExtras();
+    var pts = (D.HISTORY && D.HISTORY[skill]) || [];
+    var goal = (D.GOALS || []).filter(function(g){ return g.skill === skill && !g.done; })[0];
+    var last = pts[pts.length-1], first = pts[0];
+    var gain = last && first && pts.length > 1 ? last.v - first.v : 0;
+    var hasShot = window.r2figure && window.r2figure.shotIndex(skill) >= 0;
+    modal('<div class="hist">'+
+      '<div class="eyebrow">'+t("v.progress")+'</div>'+
+      '<div class="hist-hd"><h3>'+esc(skill)+'</h3><span class="hist-now">'+(last ? last.v.toFixed(1) : "–")+'<small>/10</small></span></div>'+
+      (pts.length > 1 ? '<p class="muted small">'+(gain >= 0 ? '+' : '')+gain.toFixed(1)+' '+t("v.since")+' '+esc(first.on)+'</p>' : '')+
+      lineChart(pts, goal ? goal.target : 0)+
+      (goal ? goalBar(goal) : '')+
+      (last && last.video ? '<div class="hist-vid" id="histVid"><div class="eyebrow">'+t("v.coachVideo")+'</div><p class="muted small">…</p></div>' : '')+
+      '<div class="hist-list">'+pts.slice().reverse().map(function(p){
+        return '<div class="hl-row"><span>'+esc(p.on)+'</span>'+(p.video ? '<button class="link-btn" data-clip="'+esc(p.video)+'">&#9654; '+t("v.video")+'</button>' : '<span></span>')+'<b>'+p.v.toFixed(1)+'</b></div>';
+      }).join("")+'</div>'+
+      (hasShot ? '<button class="btn btn-ghost btn-sm" data-close data-showshot="'+esc(skill)+'">'+t("v.seeShot")+'</button>' : '')+
+    '</div>');
+    if(last && last.video) playClip(last.video, "#histVid");
+  }
+
+  function playClip(path, into){
+    if(!REAL) return;
+    PVB.act.clipUrl(path).then(function(url){
+      var box = $(into);
+      if(box) box.innerHTML = '<div class="eyebrow">'+t("v.coachVideo")+'</div><video src="'+esc(url)+'" controls playsinline preload="metadata"></video>';
+    }).catch(oops);
+  }
+
+  document.addEventListener("click", function(e){
+    var h = e.target.closest("[data-hist]");
+    if(h){ openHistory(h.dataset.hist); return; }
+    var c = e.target.closest("[data-clip]");
+    if(c){
+      var host = c.closest(".hist, .psheet");
+      var box = host && host.querySelector(".clipbox");
+      if(!box && host){ box = document.createElement("div"); box.className = "clipbox"; box.id = "clipbox" + Date.now(); c.closest(".hl-row, .ps-skill, div").after(box); }
+      if(box){ if(!box.id) box.id = "clipbox" + Date.now(); playClip(c.dataset.clip, "#" + box.id); }
+      return;
+    }
+    var sh = e.target.closest("[data-showshot]");
+    if(sh && window.r2figure){
+      setTimeout(function(){
+        if(window.r2figure.showShot(sh.dataset.showshot)){
+          var card = $("#pslides"); if(card) card.scrollIntoView({block:"center", behavior: calm ? "auto" : "smooth"});
+        }
+      }, 60);
+    }
+  });
+
+  /* ================================================================ notifications */
+
+  function notifText(n){
+    var d = n.data || {};
+    switch(n.kind){
+      case "rating":
+        var shots = (d.shots || []).map(function(x){ return x.skill + " " + Number(x.score).toFixed(1); }).join(", ");
+        return {ic:"&#9733;", t: t("n.rating", {by: (d.by || t("c.coach")).split(" ")[0]}), s: shots + (d.video ? " · &#9654;" : ""), go:"dev"};
+      case "note":     return {ic:"&#9998;", t: t("n.note", {by: (d.by || t("c.coach")).split(" ")[0]}), s: d.body || "", go:"dev"};
+      case "drill":    return {ic:"&#9654;", t: t("n.drill"), s: d.title || "", go:"home"};
+      case "goal":     return {ic:"&#9678;", t: t("n.goal"), s: d.skill + " → " + Number(d.target).toFixed(1), go:"dev"};
+      case "goaldone": return {ic:"&#10003;", t: t("n.goaldone"), s: d.skill + " " + Number(d.target).toFixed(1), go:"dev"};
+      case "levelup":  return {ic:"&#9650;", t: t("n.levelup", {level: Number(d.level).toFixed(2)}), s: t("n.share"), go:"share"};
+      default:         return {ic:"&#8226;", t: n.kind, s:"", go:""};
+    }
+  }
+
+  function unread(){ return (D.NOTIFS || []).filter(function(n){ return !n.read_at; }).length; }
+
+  function paintBell(){
+    var b = $("#bellBtn");
+    if(!b) return;
+    b.hidden = role !== "player";
+    var u = unread(), badge = $("#bellCount");
+    badge.hidden = !u; badge.textContent = u > 9 ? "9+" : u;
+  }
+
+  function ago(iso){
+    var m = Math.round((Date.now() - new Date(iso)) / 60000);
+    if(m < 60) return Math.max(1, m) + " min";
+    if(m < 1440) return Math.round(m/60) + " h";
+    return new Date(iso).toLocaleDateString(locale(), {day:"numeric", month:"short"});
+  }
+
+  function openBell(){
+    demoExtras();
+    var list = D.NOTIFS || [];
+    modal('<div class="bell-sheet"><h3>'+t("n.title")+'</h3>'+
+      (list.length ? list.map(function(n){
+        var x = notifText(n);
+        return '<button class="nrow'+(n.read_at ? "" : " new")+'" data-ngo="'+x.go+'" data-close>'+
+          '<span class="nic">'+x.ic+'</span><span class="nbody"><b>'+esc(x.t)+'</b><small>'+x.s+'</small></span>'+
+          '<span class="nago">'+ago(n.created_at)+'</span></button>';
+      }).join("") : '<p class="muted small">'+t("n.empty")+'</p>')+
+      pushOffer()+
+    '</div>');
+    var had = unread();
+    list.forEach(function(n){ if(!n.read_at) n.read_at = new Date().toISOString(); });
+    paintBell();
+    if(REAL && had) PVB.act.markRead().catch(function(){});
+  }
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#bellBtn")){ openBell(); return; }
+    var g = e.target.closest("[data-ngo]");
+    if(g){
+      var go = g.dataset.ngo;
+      if(go === "share") setTimeout(shareCard, 80);
+      else if(go) show(go, true);
+    }
+  });
+
+  /* phone notifications: only offered where the browser can do it */
+  var VAPID = "";   /* public key, set once phone push is switched on for the platform */
+  function pushOffer(){
+    if(!REAL || !VAPID || !("serviceWorker" in navigator) || !("PushManager" in window)) return "";
+    if(typeof Notification !== "undefined" && Notification.permission === "granted") return "";
+    return '<button class="btn btn-primary btn-sm push-on" id="pushOn">'+t("n.phone")+'</button>';
+  }
+  function b64u(s){ var p = "=".repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/"));
+    return Uint8Array.from(b, function(c){ return c.charCodeAt(0); }); }
+  document.addEventListener("click", function(e){
+    if(!e.target.closest("#pushOn")) return;
+    Notification.requestPermission().then(function(p){
+      if(p !== "granted") return;
+      return navigator.serviceWorker.ready.then(function(reg){
+        return reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(VAPID)});
+      }).then(function(sub){ return PVB.act.savePush(sub); }).then(function(){ window.r2toast(t("n.phoneOn")); closeModal(); });
+    }).catch(oops);
+  });
+
+  /* ================================================================ share card */
+
+  function roundRect(x, c, y, w, h, r){ x.beginPath(); x.moveTo(c+r, y); x.arcTo(c+w, y, c+w, y+h, r); x.arcTo(c+w, y+h, c, y+h, r); x.arcTo(c, y+h, c, y, r); x.arcTo(c, y, c+w, y, r); x.closePath(); }
+
+  function drawCard(){
+    var W = 1080, H = 1350, cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    var x = cv.getContext("2d");
+    var volt = "#C8F542", ink = "#0B0D0F";
+    x.fillStyle = ink; x.fillRect(0, 0, W, H);
+    var g = x.createRadialGradient(W*0.8, H*0.15, 50, W*0.8, H*0.15, 900);
+    g.addColorStop(0, "rgba(200,245,66,.22)"); g.addColorStop(1, "rgba(200,245,66,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    /* pulse line */
+    x.strokeStyle = volt; x.lineWidth = 10; x.lineJoin = "round"; x.lineCap = "round";
+    x.beginPath(); [[0,250],[300,250],[360,170],[430,360],[510,90],[580,310],[640,250],[W,250]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+
+    var club = (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent || "Padel Vitals";
+    var name = (account && account.name) || D.PLAYER.name;
+    var lvl = (REAL && D.ME) ? D.ME.level : (D.ROSTER.filter(function(p){ return p.me; })[0] || {rating:3.25}).rating;
+    x.fillStyle = "#9AA3AB"; x.font = "600 34px 'IBM Plex Mono', monospace";
+    x.fillText(club.toUpperCase(), 80, 470);
+    x.fillStyle = "#F2F4F5"; x.font = "700 78px 'Instrument Sans', sans-serif";
+    x.fillText(name, 80, 560);
+    x.fillStyle = volt; x.font = "400 300px Anton, Impact, sans-serif";
+    x.fillText(Number(lvl).toFixed(2), 70, 880);
+    x.fillStyle = "#F2F4F5"; x.font = "600 40px 'IBM Plex Mono', monospace";
+    x.fillText(t("share.level").toUpperCase(), 84, 940);
+
+    var top = D.SKILLS.filter(function(s){ return !s.unrated; }).slice().sort(function(a,b){ return b.v - a.v; }).slice(0, 3);
+    top.forEach(function(s, i){
+      var y = 1010 + i * 82;
+      x.fillStyle = "#F2F4F5"; x.font = "600 36px 'Instrument Sans', sans-serif"; x.fillText(s.n, 84, y + 28);
+      x.fillStyle = "rgba(255,255,255,.12)"; roundRect(x, 420, y + 6, 470, 22, 11); x.fill();
+      x.fillStyle = volt; roundRect(x, 420, y + 6, Math.max(22, 470 * s.v / 10), 22, 11); x.fill();
+      x.fillStyle = "#F2F4F5"; x.font = "400 44px Anton, Impact, sans-serif"; x.fillText(s.v.toFixed(1), 920, y + 32);
+    });
+    x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace";
+    x.fillText("PADELVITALS.COM", 84, H - 70);
+    x.fillStyle = volt; x.font = "400 44px Anton, Impact, sans-serif"; x.textAlign = "right";
+    x.fillText("PADEL VITALS", W - 80, H - 66); x.textAlign = "left";
+    return cv;
+  }
+
+  function shareCard(){
+    var f = document.fonts ? Promise.all(["300px Anton", "700 78px 'Instrument Sans'", "600 34px 'IBM Plex Mono'"].map(function(x){
+      return document.fonts.load(x).catch(function(){}); })) : Promise.resolve();
+    f.then(shareCardNow);
+  }
+  function shareCardNow(){
+    var cv = drawCard();
+    cv.toBlob(function(blob){
+      var file = new File([blob], "padel-vitals-level.png", {type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file], text: t("share.text")}).catch(function(){});
+        return;
+      }
+      var url = URL.createObjectURL(blob);
+      modal('<div class="share-prev"><img src="'+url+'" alt=""><a class="btn btn-primary" href="'+url+'" download="padel-vitals-level.png">'+t("share.save")+'</a></div>');
+    }, "image/png");
+  }
+  document.addEventListener("click", function(e){ if(e.target.closest("[data-sharecard]")) shareCard(); });
+
+  /* a level up the player has not celebrated yet gets offered once */
+  function levelUpCheck(){
+    if(!REAL || role !== "player" || !D.ME) return;
+    var key = "pv.seenLevel." + D.ME.id, seen = null;
+    try{ seen = parseFloat(localStorage.getItem(key)); }catch(e){}
+    var now = Number(D.ME.level) || 0;
+    try{ localStorage.setItem(key, String(now)); }catch(e){}
+    if(seen != null && !isNaN(seen) && now > seen){
+      modal('<div class="lvup"><div class="eyebrow">'+t("n.levelupT")+'</div><div class="lvup-n">'+now.toFixed(2)+'</div>'+
+        '<p class="muted">'+t("share.text")+'</p><button class="btn btn-primary" data-sharecard>'+t("n.share")+'</button></div>');
+    }
+  }
+
+  /* ================================================================ coach: rate the whole group */
+
+  var grSkill = null, grVals = {};
+
+  function groupList(){
+    var checks = S.checks(checkSession), ids = Object.keys(checks);
+    var list = ids.length ? D.ROSTER.filter(function(p){ return checks[p.id]; }) : D.ROSTER.slice();
+    return list.sort(function(a,b){ return a.n.localeCompare(b.n); });
+  }
+
+  function groupRateHtml(){
+    if(!grSkill) grSkill = D.SKILLS[0].n;
+    var list = groupList(), any = Object.keys(S.checks(checkSession)).length;
+    var sess = D.SCHEDULE.filter(function(x){ return x.id === checkSession; })[0];
+    var done = Object.keys(grVals).length;
+    return '<div class="grate">'+
+      '<div class="eyebrow">'+(sess ? esc(sessionLabel(sess)) : "")+'</div>'+
+      '<h3>'+t("gr.title")+'</h3>'+
+      '<p class="muted small">'+(any ? t("gr.checked", {n:list.length}) : t("gr.all"))+'</p>'+
+      '<div class="gr-skills">'+D.SKILLS.map(function(s){
+        return '<button class="'+(s.n === grSkill ? "on" : "")+'" data-grskill="'+esc(s.n)+'">'+esc(s.n)+'</button>';
+      }).join("")+'</div>'+
+      '<div class="gr-list">'+list.map(function(p){
+        var v = grVals[p.id];
+        return '<div class="gr-row'+(v != null ? " set" : "")+'"><span class="who">'+esc(p.n)+'</span>'+
+          '<input type="range" min="0" max="10" step="0.1" value="'+(v != null ? v : 5)+'" data-grp="'+p.id+'" aria-label="'+esc(p.n)+'">'+
+          '<b data-grout="'+p.id+'">'+(v != null ? v.toFixed(1) : "–")+'</b>'+
+          (v != null ? '<button class="gr-skip" data-grskip="'+p.id+'" aria-label="Skip">&times;</button>' : '<span></span>')+'</div>';
+      }).join("")+'</div>'+
+      '<button class="btn btn-primary gr-save" id="grSave"'+(done ? '' : ' disabled')+'>'+t("gr.save", {n:done, skill:grSkill})+'</button>'+
+      '<p class="muted small gr-hint">'+t("gr.hint")+'</p>'+
+    '</div>';
+  }
+
+  function openGroupRate(){ grVals = {}; modal(groupRateHtml()); }
+  function repaintGroup(){ var y = $(".sheet") ? $(".sheet").scrollTop : 0; $("#modalBody").innerHTML = groupRateHtml(); if($(".sheet")) $(".sheet").scrollTop = y; }
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#groupRate")){ openGroupRate(); return; }
+    var sk = e.target.closest("[data-grskill]");
+    if(sk){
+      if(Object.keys(grVals).length && grSkill !== sk.dataset.grskill && !window.confirm(t("gr.switch"))) return;
+      grSkill = sk.dataset.grskill; grVals = {}; repaintGroup(); return;
+    }
+    var sp = e.target.closest("[data-grskip]");
+    if(sp){ delete grVals[sp.dataset.grskip]; repaintGroup(); return; }
+    if(e.target.closest("#grSave")){
+      var ids = Object.keys(grVals), skill = grSkill;
+      if(!ids.length) return;
+      var rows = ids.map(function(id){ return {player:id, skill:skill, score:Math.round(grVals[id]*10)/10}; });
+      haptic(24);
+      if(!REAL){
+        rows.forEach(function(r){
+          demoRatings[r.player] = demoRatings[r.player] || {};
+          demoRatings[r.player][skill] = {n:skill, v:r.score, d:0, on:t("t.today"), unrated:false};
+          var p = D.ROSTER.filter(function(x){ return x.id === r.player; })[0];
+          if(p && p.me){ S.setSkill(skill, r.score); applyEdits(); renderSkills(); }
+        });
+        closeModal(); window.r2toast(t("gr.saved", {n:rows.length, skill:skill})); return;
+      }
+      $("#grSave").disabled = true;
+      PVB.act.rateMany(rows).then(function(){ closeModal(); window.r2toast(t("gr.saved", {n:rows.length, skill:skill})); })
+        .catch(function(err){ oops(err); var b = $("#grSave"); if(b) b.disabled = false; });
+    }
+  });
+  document.addEventListener("input", function(e){
+    var r = e.target.closest("[data-grp]");
+    if(!r) return;
+    var id = r.dataset.grp, v = parseFloat(r.value), first = grVals[id] == null;
+    grVals[id] = v;
+    var out = document.querySelector('[data-grout="'+id+'"]'); if(out) out.textContent = v.toFixed(1);
+    r.closest(".gr-row").classList.add("set");
+    var b = $("#grSave");
+    if(b){ b.disabled = false; b.textContent = t("gr.save", {n:Object.keys(grVals).length, skill:grSkill}); }
+    if(first){ /* add the skip button without redrawing under the thumb */
+      var row = r.closest(".gr-row"), last = row.lastElementChild;
+      if(last && last.tagName === "SPAN"){ var x = document.createElement("button"); x.className = "gr-skip"; x.dataset.grskip = id; x.innerHTML = "&times;"; row.replaceChild(x, last); }
+    }
+  });
+
+  /* ================================================================ install as an app */
+
+  var installEvt = null;
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); installEvt = e; paintInstall(); });
+  function standalone(){ return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }
+  function isIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+  function paintInstall(){
+    var bar = $("#installBar");
+    if(!bar) return;
+    var dismissed = false; try{ dismissed = localStorage.getItem("pv.installNo") === "1"; }catch(e){}
+    bar.hidden = !account || standalone() || dismissed || !(installEvt || isIOS());
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#installGo")){
+      if(installEvt){ installEvt.prompt(); installEvt.userChoice.then(function(){ installEvt = null; paintInstall(); }); return; }
+      modal('<div class="ios-help"><h3>'+t("i.title")+'</h3><ol><li>'+t("i.s1")+' <span class="ios-share" aria-hidden="true">'+
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 8l5-5 5 5M5 13v7h14v-7"/></svg></span></li>'+
+        '<li>'+t("i.s2")+'</li><li>'+t("i.s3")+'</li></ol></div>');
+      return;
+    }
+    if(e.target.closest("#installNo")){ try{ localStorage.setItem("pv.installNo", "1"); }catch(err){} paintInstall(); }
+  });
+
+  /* ================================================================ monthly report link */
+  function reportUrl(memberId){
+    return "report.html" + (REAL ? "?player=" + encodeURIComponent(memberId) : "?demo=1");
   }
 
   /* ---------------------------------------------------------------- kantine staff */
@@ -1314,6 +1757,9 @@
     renderPlayers();
     renderCSchedule();
     renderCDrills();
+    renderGoals();
+    paintBell();
+    paintInstall();
     renderLive();
     renderQueue();
     scanNote();
@@ -1329,6 +1775,8 @@
     var chip = document.querySelector(".pts-chip");
     if(chip) chip.hidden = role !== "player";
     $("#squadLine").textContent = [P.squad, P.days, P.coach].filter(Boolean).join(" · ");
+    var mr = $("#myReport");
+    if(mr) mr.href = reportUrl(REAL && D.ME ? D.ME.id : "");
     if(REAL){ paintReal(); refreshDrillCounts(); }
   }
 
@@ -1454,6 +1902,7 @@
     if(window.r2figure) window.r2figure.mount();
     var h = location.hash.slice(1);
     if(h && h.indexOf("access_token") === -1) route(h);
+    levelUpCheck();
     return true;
   }
 
@@ -1525,6 +1974,14 @@
       }
     });
   }
+
+  /* coming back to the app: pull what changed while it was in the background */
+  var lastPull = Date.now();
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden || !REAL || Date.now() - lastPull < 60000) return;
+    lastPull = Date.now();
+    reload().then(levelUpCheck).catch(function(){});
+  });
 
   /* court wifi is never reliable */
   function net(){
