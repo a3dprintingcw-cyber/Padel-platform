@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=30">
+<link rel="stylesheet" href="assets/styles.css?v=31">
 </head>
 <body data-page="platform">
 <header class="topbar">
@@ -25,7 +25,13 @@
 <main class="wrap amain" id="main" hidden>
   <div class="ahead"><div class="eyebrow">Padel Vitals team</div><h1>Platform</h1></div>
   <div class="kpis" id="kpis"></div>
-  <section class="card astack">
+  <section class="astack">
+    <div class="card-hd"><h3>Sales pipeline</h3><span class="chip ochre" id="leadCount">0 new</span></div>
+    <p class="muted small">Every club that fills in the Register form on the website lands here.</p>
+    <div class="seg lead-tabs" id="leadTabs"></div>
+    <div id="leadList" class="alist"></div>
+  </section>
+  <section class="card astack" id="newClubCard">
     <div class="card-hd"><h3>New club</h3></div>
     <p class="muted small">Creates the club, holds its region, and invites the owner. The owner signs in with Google using this exact email and lands in their club admin.</p>
     <form id="newClub" class="aform">
@@ -52,10 +58,10 @@
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/regions.js?v=30"></script>
-<script src="assets/clubs.js?v=30"></script>
-<script src="assets/backend.js?v=30"></script>
-<script src="assets/site.js?v=30"></script>
-<script src="assets/admin.js?v=30"></script>
+<script src="assets/regions.js?v=31"></script>
+<script src="assets/clubs.js?v=31"></script>
+<script src="assets/backend.js?v=31"></script>
+<script src="assets/site.js?v=31"></script>
+<script src="assets/admin.js?v=31"></script>
 </body>
 </html>

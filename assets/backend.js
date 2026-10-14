@@ -284,6 +284,9 @@ window.PV = (function(){
               due:g.due, done:!!g.done_at};
     });
     R2.NOTIFS = notifs;
+    var yr = new Date(now.getFullYear(), 0, 1);
+    R2.SEASON = {points: ledger.filter(function(p){ return p.amount > 0 && new Date(p.created_at) >= yr; }).reduce(function(t, p){ return t + p.amount; }, 0),
+                 drills: done.length};
     R2.NOTES = notes.map(function(n){ return {body:n.body, by:nm(n.coach_id), on:dayMonth(n.created_at)}; });
     R2.GROUPS = groups;
     var meRow = byId[me.id] || me;
@@ -461,6 +464,30 @@ window.PV = (function(){
     },
     ladder: function(){ return sb.rpc("club_ladder", {p_club:state.club.id}).then(fail); },
     rankings: function(){ return sb.rpc("club_rankings").then(fail); },
+    clubByCode: function(code){ return sb.rpc("club_by_code", {p_code:code}).then(fail); },
+    requestJoin: function(code, name){ return sb.rpc("request_join", {p_code:code, p_name:name || ""}).then(fail); },
+    myRequests: function(){ return sb.from("join_requests").select("status, created_at, clubs(name)").eq("status", "pending").then(fail); },
+    challenges: function(){ return sb.rpc("my_challenges", {p_club:state.club.id}).then(fail); },
+    claimChallenge: function(key){ return sb.rpc("claim_challenge", {p_club:state.club.id, p_key:key}).then(fail); },
+    feed: async function(){
+      var r = await sb.from("club_feed").select("id, member_id, kind, data, created_at, cheers(member_id, emoji)")
+        .eq("club_id", state.club.id).order("created_at", {ascending:false}).limit(30);
+      return (fail(r) || []).map(function(f){ return {id:f.id, who:f.member_id, n:nameOf(f.member_id), kind:f.kind, data:f.data || {}, at:f.created_at, cheers:f.cheers || []}; });
+    },
+    cheer: function(feedId, emoji){ return sb.rpc("cheer", {p_feed:feedId, p_emoji:emoji}).then(fail); },
+    lessons: async function(){
+      var r = await sb.from("lesson_slots").select("id, coach_id, starts_at, minutes, price, note, booked_by, status")
+        .eq("club_id", state.club.id).neq("status", "cancelled").gte("starts_at", new Date(Date.now() - 36e5).toISOString())
+        .lte("starts_at", new Date(Date.now() + 28*864e5).toISOString()).order("starts_at");
+      return (fail(r) || []).map(function(x){ return {id:x.id, coach:x.coach_id, coachName:nameOf(x.coach_id), at:x.starts_at, min:x.minutes,
+        price:x.price || "", note:x.note || "", by:x.booked_by, byName:nameOf(x.booked_by), status:x.status}; });
+    },
+    addSlot: function(at, minutes, price, note){
+      return sb.from("lesson_slots").insert({club_id:state.club.id, coach_id:state.member.id, starts_at:at, minutes:minutes, price:price || null, note:note || null}).then(fail);
+    },
+    deleteSlot: function(id){ return sb.from("lesson_slots").delete().eq("id", id).then(fail); },
+    bookLesson: function(id){ return sb.rpc("book_lesson", {p_slot:id}).then(fail); },
+    cancelLesson: function(id){ return sb.rpc("cancel_lesson", {p_slot:id}).then(fail); },
     savePush: function(sub){
       var j = sub.toJSON();
       return sb.from("push_subs").upsert({endpoint:j.endpoint, member_id:state.member.id, club_id:state.club.id,

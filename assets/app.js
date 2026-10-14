@@ -154,7 +154,9 @@
     if(id !== "bar" && typeof stopScan === "function" && scanning) stopScan();
     $$(".view").forEach(function(v){ v.classList.toggle("on", v.id === "v-" + id); });
     if(id === "matches") loadMatches();
-    if(id === "squad") renderRanks();
+    if(id === "squad"){ renderRanks(); loadFeed(); }
+    if(id === "dash") loadChallenges();
+    if(id === "schedule" || id === "cschedule") loadLessons();
     $$("[data-go]").forEach(function(x){ x.classList.toggle("active", x.dataset.go === id); });
     if(push && location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
     window.scrollTo({top:0, behavior: calm ? "auto" : "smooth"});
@@ -1249,6 +1251,11 @@
       case "matchjoin":   return {ic:"&#43;", t: t("n.matchjoin", {by:(d.by || "").split(" ")[0]}), s: (d.n || 2) + "/4", go:"matches"};
       case "matchfull":   return {ic:"&#10003;", t: t("n.matchfull"), s: (d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) + " · " : "") + t("m.book"), go:"matches"};
       case "matchresult": return {ic:"&#9733;", t: d.won ? t("n.matchwon") : t("n.matchlost"), s: d.score || "", go:"matches"};
+      case "announce":     return {ic:"&#128227;", t: d.title || t("n.announce"), s: d.body || "", go:""};
+      case "cheer":        return {ic:(CHEERS[d.emoji] || "&#128079;"), t: t("n.cheer", {by:(d.by || "").split(" ")[0]}), s:"", go:"squad"};
+      case "joinreq":      return {ic:"&#43;", t: t("n.joinreq", {by:d.name || ""}), s: t("n.joinreqS"), go:""};
+      case "lessonbooked": return {ic:"&#128197;", t: t("n.lessonbooked", {by:(d.by || "").split(" ")[0]}), s: d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) : "", go:"cschedule"};
+      case "lessoncancel": return {ic:"&#10005;", t: t("n.lessoncancel", {by:(d.by || "").split(" ")[0]}), s: d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) : "", go:role === "coach" ? "cschedule" : "schedule"};
       case "levelup":  return {ic:"&#9650;", t: t("n.levelup", {level: Number(d.level).toFixed(2)}), s: t("n.share"), go:"share"};
       default:         return {ic:"&#8226;", t: n.kind, s:"", go:""};
     }
@@ -1956,6 +1963,325 @@
     }).join("") + (REAL ? '' : '<p class="muted small">'+t("cr.demo")+'</p>') : '<p class="empty">'+t("cr.none")+'</p>';
   }
 
+  /* ================================================================ join a club by QR code */
+
+  var JOIN_KEY = "pv.join";
+  (function(){
+    var c = new URLSearchParams(location.search).get("join");
+    if(c && /^[A-Za-z0-9]{4,12}$/.test(c)){ try{ localStorage.setItem(JOIN_KEY, c.toUpperCase()); }catch(e){} }
+  })();
+  function joinCode(){ try{ return localStorage.getItem(JOIN_KEY) || ""; }catch(e){ return ""; } }
+  function clearJoin(){ try{ localStorage.removeItem(JOIN_KEY); }catch(e){} }
+
+  function paintJoinGate(){
+    var code = joinCode(), box = $("#gateJoin");
+    if(!box) return;
+    if(!code || !PVB || !PVB.ready){ box.hidden = true; return; }
+    PVB.act.clubByCode(code).then(function(c){
+      if(!c){ box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = '<div class="eyebrow">'+t("j.joining")+'</div><b>'+esc(c.name)+'</b>'+(c.city ? '<small>'+esc(c.city)+'</small>' : '');
+    }).catch(function(){ box.hidden = true; });
+  }
+
+  function showWaiting(st, clubName){
+    showNoClub(st);
+    $("#gateNoClub").innerHTML = '<p>'+t("j.sent", {club: esc(clubName || "")})+'</p>'+
+      '<button class="btn btn-ghost btn-sm" id="gateRetry">'+t("j.check")+'</button> <button class="btn btn-ghost btn-sm" id="gateOut">'+t("c.signOut")+'</button>';
+  }
+  document.addEventListener("click", function(e){ if(e.target.closest("#gateRetry")) location.reload(); });
+
+  /* ================================================================ weekly challenges */
+
+  var CHAL = null;
+  function demoChal(){
+    return CHAL || (CHAL = {streak:5, items:[
+      {key:"train3", target:3, progress:2, points:50, claimed:false},
+      {key:"drills2", target:2, progress:2, points:30, claimed:false},
+      {key:"match1", target:1, progress:1, points:30, claimed:true}]});
+  }
+  function loadChallenges(){
+    if(role !== "player") return;
+    if(!REAL){ demoChal(); renderChallenges(); return; }
+    PVB.act.challenges().then(function(c){ CHAL = c; renderChallenges(); }).catch(function(){});
+  }
+  function renderChallenges(){
+    var el = $("#chalBody"), card = $("#chalCard");
+    if(!el) return;
+    card.hidden = role !== "player" || !CHAL;
+    if(!CHAL) return;
+    $("#chalStreak").textContent = CHAL.streak ? "🔥 " + t("ch.streak", {n:CHAL.streak}) : t("ch.noStreak");
+    el.innerHTML = (CHAL.items || []).map(function(c){
+      var done = c.progress >= c.target, pct = Math.min(100, c.progress / c.target * 100);
+      return '<div class="chal'+(c.claimed ? " claimed" : done ? " ready" : "")+'">'+
+        '<div class="chal-hd"><b>'+t("ch." + c.key)+'</b><span>'+Math.min(c.progress, c.target)+'/'+c.target+'</span></div>'+
+        '<div class="track"><i style="width:'+pct+'%"></i></div>'+
+        (c.claimed ? '<small class="good">&#10003; +'+c.points+' '+t("c.points")+'</small>' :
+         done ? '<button class="btn btn-primary btn-sm" data-claim="'+c.key+'">'+t("ch.claim", {n:c.points})+'</button>' :
+         '<small class="muted">+'+c.points+' '+t("c.points")+'</small>')+
+      '</div>';
+    }).join("");
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-claim]");
+    if(!b || !CHAL) return;
+    var item = CHAL.items.filter(function(x){ return x.key === b.dataset.claim; })[0];
+    if(!item) return;
+    haptic(24);
+    if(!REAL){ item.claimed = true; award(item.points, t("ch." + item.key) + " · +" + item.points + " " + t("c.points")); renderChallenges(); return; }
+    b.disabled = true;
+    PVB.act.claimChallenge(item.key).then(function(n){
+      item.claimed = true; renderChallenges();
+      return sync(Promise.resolve(), t("ch." + item.key) + " · +" + n + " " + t("c.points"));
+    }).catch(function(err){ oops(err); b.disabled = false; });
+  });
+
+  /* ================================================================ club feed with cheers */
+
+  var FEED = null, CHEERS = {fire:"🔥", clap:"👏", muscle:"💪"};
+  function demoFeed(){
+    if(FEED) return FEED;
+    var h = function(x){ return new Date(Date.now() - x * 36e5).toISOString(); };
+    FEED = [
+      {id:"f1", who:"p2", n:"Natalia Gomez", kind:"levelup", data:{level:3.75}, at:h(5), cheers:[{member_id:"p3", emoji:"fire"}, {member_id:"p4", emoji:"clap"}, {member_id:"p5", emoji:"fire"}]},
+      {id:"f2", who:"p1", n:"Alex Rivera", kind:"goal", data:{skill:"Bandeja", target:6.0}, at:h(30), cheers:[{member_id:"p2", emoji:"muscle"}]},
+      {id:"f3", who:"p3", n:"Jake Miller", kind:"matchwin", data:{score:"6-3 6-4"}, at:h(52), cheers:[]},
+      {id:"f4", who:"p6", n:"Valentina Lopez", kind:"levelup", data:{level:3.0}, at:h(96), cheers:[{member_id:"p1", emoji:"clap"}]}
+    ];
+    return FEED;
+  }
+  function loadFeed(){
+    if(role !== "player") return;
+    if(!REAL){ demoFeed(); renderFeed(); return; }
+    PVB.act.feed().then(function(f){ FEED = f || []; renderFeed(); }).catch(function(){});
+  }
+  function feedText(f){
+    var first = esc((f.n || "").split(" ")[0]), d = f.data || {};
+    if(f.kind === "levelup") return t("f.levelup", {who:first, level:Number(d.level).toFixed(2)});
+    if(f.kind === "goal") return t("f.goal", {who:first, skill:esc(d.skill), target:Number(d.target).toFixed(1)});
+    if(f.kind === "matchwin") return t("f.matchwin", {who:first, score:esc(d.score || "")});
+    return first;
+  }
+  function renderFeed(){
+    var el = $("#feedBody");
+    if(!el || !FEED) return;
+    var me = myId();
+    el.innerHTML = FEED.length ? FEED.map(function(f){
+      var mine = (f.cheers || []).filter(function(c){ return c.member_id === me; })[0];
+      var count = {}; (f.cheers || []).forEach(function(c){ count[c.emoji] = (count[c.emoji] || 0) + 1; });
+      return '<div class="fitem"><span class="avatar sm'+(f.who === me ? "" : " sea")+'">'+esc(initialsOf(f.n))+'</span>'+
+        '<div class="fbody"><p>'+feedText(f)+'</p><small>'+ago(f.at)+'</small>'+
+        '<div class="cheers">'+Object.keys(CHEERS).map(function(k){
+          return '<button class="cheer'+(mine && mine.emoji === k ? " on" : "")+'" data-cheer="'+k+'" data-feed="'+f.id+'" aria-label="'+k+'">'+CHEERS[k]+(count[k] ? ' <b>'+count[k]+'</b>' : '')+'</button>';
+        }).join("")+'</div></div></div>';
+    }).join("") : '<p class="muted small">'+t("f.empty")+'</p>';
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-cheer]");
+    if(!b || !FEED) return;
+    var f = FEED.filter(function(x){ return x.id === b.dataset.feed; })[0], me = myId(), k = b.dataset.cheer;
+    if(!f) return;
+    var cur = (f.cheers || []).filter(function(c){ return c.member_id === me; })[0];
+    var next = cur && cur.emoji === k ? null : k;
+    f.cheers = (f.cheers || []).filter(function(c){ return c.member_id !== me; });
+    if(next) f.cheers.push({member_id:me, emoji:next});
+    haptic(); renderFeed();
+    if(REAL) PVB.act.cheer(f.id, next).catch(oops);
+  });
+
+  /* ================================================================ private lessons */
+
+  var LESSONS = null;
+  function demoLessons(){
+    if(LESSONS) return LESSONS;
+    var at = function(d, h){ var x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, 0, 0, 0); return x.toISOString(); };
+    LESSONS = [
+      {id:"l1", coach:"c0", coachName:"Diego Morales", at:at(1, 8), min:60, price:"$70", note:"Court 2", by:null, status:"open"},
+      {id:"l2", coach:"c0", coachName:"Diego Morales", at:at(2, 17), min:60, price:"$70", note:"", by:null, status:"open"},
+      {id:"l3", coach:"c1", coachName:"Sofia Castillo", at:at(3, 9), min:45, price:"$55", note:"Fitness and footwork", by:null, status:"open"},
+      {id:"l4", coach:"c0", coachName:"Diego Morales", at:at(4, 18), min:60, price:"$70", note:"", by:"p1", byName:"Alex Rivera", status:"booked"}
+    ];
+    return LESSONS;
+  }
+  function loadLessons(){
+    if(!REAL){ demoLessons(); renderLessons(); return; }
+    PVB.act.lessons().then(function(l){ LESSONS = l || []; renderLessons(); }).catch(function(){});
+  }
+  function lessonRow(l, mode){
+    var d = new Date(l.at), me = myId();
+    var meta = [l.min + " min", l.price, l.note].filter(Boolean).map(esc).join(" · ");
+    var act = "";
+    if(mode === "player"){
+      act = l.by === me ? '<span class="chip sea">'+t("ls.yours")+'</span><button class="link-btn" data-lcancel="'+l.id+'">'+t("ls.cancel")+'</button>'
+                        : '<button class="btn btn-primary btn-sm" data-lbook="'+l.id+'">'+t("ls.book")+'</button>';
+    } else {
+      act = l.status === "booked" ? '<span class="chip sea">'+esc((l.byName || "").split(" ")[0] || t("ls.booked"))+'</span><button class="link-btn danger" data-lcancel="'+l.id+'">'+t("ls.cancel")+'</button>'
+                                  : '<span class="chip">'+t("ls.open")+'</span><button class="link-btn danger" data-ldel="'+l.id+'">'+t("ls.remove")+'</button>';
+    }
+    return '<div class="lrow"><div class="lwhen"><b>'+fmtDay(d)+'</b><span>'+fmtTime(d)+'</span></div>'+
+      '<div class="lbody"><b>'+esc(mode === "player" ? l.coachName : (l.status === "booked" ? (l.byName || t("ls.booked")) : t("ls.open")))+'</b><small>'+meta+'</small></div>'+
+      '<div class="lact">'+act+'</div></div>';
+  }
+  function renderLessons(){
+    if(!LESSONS) return;
+    var me = myId(), pl = $("#lessonsBody"), co = $("#cLessonsBody");
+    if(pl){
+      var mine = LESSONS.filter(function(l){ return l.by === me; });
+      var open = LESSONS.filter(function(l){ return l.status === "open" && new Date(l.at) > new Date(); });
+      pl.innerHTML = (mine.length ? mine.map(function(l){ return lessonRow(l, "player"); }).join("") : '')+
+        (open.length ? open.map(function(l){ return lessonRow(l, "player"); }).join("") : '<p class="muted small">'+t("ls.none")+'</p>');
+    }
+    if(co){
+      var mySlots = LESSONS.filter(function(l){ return l.coach === (REAL ? me : "c0"); });
+      co.innerHTML = mySlots.length ? mySlots.map(function(l){ return lessonRow(l, "coach"); }).join("") : '<p class="muted small">'+t("ls.noneCoach")+'</p>';
+    }
+  }
+  function slotForm(){
+    var tm = new Date(); tm.setDate(tm.getDate() + 1);
+    modal('<div class="mpost"><h3>'+t("ls.add")+'</h3>'+
+      '<div class="field-row"><label class="field"><span>'+t("m.date")+'</span><input type="date" id="lsDate" value="'+tm.toISOString().slice(0,10)+'"></label>'+
+      '<label class="field"><span>'+t("m.time")+'</span><input type="time" id="lsTime" value="09:00"></label></div>'+
+      '<div class="field-row"><label class="field"><span>'+t("ls.minutes")+'</span><input type="number" id="lsMin" value="60" min="15" max="240" step="15"></label>'+
+      '<label class="field"><span>'+t("ls.price")+'</span><input type="text" id="lsPrice" maxlength="20" placeholder="$70"></label></div>'+
+      '<label class="field"><span>'+t("m.note")+'</span><input type="text" id="lsNote" maxlength="80"></label>'+
+      '<label class="field"><span>'+t("ls.repeat")+'</span><select id="lsRep"><option value="1">'+t("ls.once")+'</option><option value="4">4</option><option value="8">8</option></select></label>'+
+      '<button class="btn btn-primary" id="lsGo">'+t("ls.add")+'</button></div>');
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#addSlot")){ slotForm(); return; }
+    if(e.target.closest("#lsGo")){
+      var date = $("#lsDate").value, time = $("#lsTime").value || "09:00", mins = parseInt($("#lsMin").value, 10) || 60;
+      var price = ($("#lsPrice").value || "").trim(), note = ($("#lsNote").value || "").trim(), rep = parseInt($("#lsRep").value, 10) || 1;
+      if(!date){ $("#lsDate").focus(); return; }
+      var first = new Date(date + "T" + time);
+      if(first < new Date()){ window.r2toast(t("m.future")); return; }
+      var times = []; for(var i = 0; i < rep; i++) times.push(new Date(first.getTime() + i * 7 * 864e5));
+      if(!REAL){
+        times.forEach(function(x, i){ demoLessons().push({id:"l" + Date.now() + i, coach:"c0", coachName:"Diego Morales", at:x.toISOString(), min:mins, price:price, note:note, by:null, status:"open"}); });
+        LESSONS.sort(function(a,b){ return new Date(a.at) - new Date(b.at); });
+        closeModal(); renderLessons(); window.r2toast(t("ls.added", {n:times.length})); return;
+      }
+      $("#lsGo").disabled = true;
+      Promise.all(times.map(function(x){ return PVB.act.addSlot(x.toISOString(), mins, price, note); }))
+        .then(function(){ closeModal(); window.r2toast(t("ls.added", {n:times.length})); loadLessons(); })
+        .catch(function(err){ oops(err); var b = $("#lsGo"); if(b) b.disabled = false; });
+      return;
+    }
+    var bk = e.target.closest("[data-lbook]");
+    if(bk){
+      var l = LESSONS.filter(function(x){ return x.id === bk.dataset.lbook; })[0];
+      if(!l || !window.confirm(t("ls.confirm", {coach:l.coachName.split(" ")[0], when:fmtDay(new Date(l.at)) + " " + fmtTime(new Date(l.at))}))) return;
+      haptic(24);
+      if(!REAL){ l.by = myId(); l.byName = account ? account.name : ""; l.status = "booked"; renderLessons(); window.r2toast(t("ls.done")); return; }
+      PVB.act.bookLesson(l.id).then(function(){ window.r2toast(t("ls.done")); loadLessons(); }).catch(function(err){ oops(err); loadLessons(); });
+      return;
+    }
+    var cn = e.target.closest("[data-lcancel]");
+    if(cn){
+      if(!window.confirm(t("ls.cancelQ"))) return;
+      var l2 = LESSONS.filter(function(x){ return x.id === cn.dataset.lcancel; })[0];
+      if(!REAL){ if(role === "coach"){ LESSONS = LESSONS.filter(function(x){ return x !== l2; }); } else { l2.by = null; l2.status = "open"; } renderLessons(); return; }
+      PVB.act.cancelLesson(cn.dataset.lcancel).then(loadLessons).catch(oops);
+      return;
+    }
+    var dl = e.target.closest("[data-ldel]");
+    if(dl){
+      if(!REAL){ LESSONS = LESSONS.filter(function(x){ return x.id !== dl.dataset.ldel; }); renderLessons(); return; }
+      PVB.act.deleteSlot(dl.dataset.ldel).then(loadLessons).catch(oops);
+    }
+  });
+
+  /* ================================================================ season Wrapped */
+
+  function seasonStats(){
+    demoExtras();
+    var yr = new Date(new Date().getFullYear(), 0, 1), H = D.HISTORY || {};
+    var best = null, gain = null, rated = 0;
+    Object.keys(H).forEach(function(k){
+      var pts = H[k].filter(function(p){ return !p.at || new Date(p.at) >= yr; });
+      rated += pts.length;
+      if(!pts.length) return;
+      var last = pts[pts.length-1].v, first = pts[0].v;
+      if(!best || last > best.v) best = {k:k, v:last};
+      if(pts.length > 1 && (!gain || last - first > gain.d)) gain = {k:k, d:Math.round((last - first)*10)/10};
+    });
+    var me = (D.ROSTER || []).filter(function(p){ return p.me; })[0] || {};
+    var lad = (LADDER || []).filter(function(r){ return r.member_id === myId(); })[0] || {};
+    return {
+      name: (account && account.name) || D.PLAYER.name,
+      club: (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent,
+      sessions: REAL ? ((D.ME && D.ME.attendedSeason) || 0) : 48,
+      level: REAL ? Number(D.ME && D.ME.level) || 0 : (me.rating || 3.25),
+      rated: rated, best: best, gain: gain,
+      played: lad.played || 0, wins: lad.wins || 0,
+      points: REAL ? ((D.SEASON && D.SEASON.points) || 0) : 2140,
+      drills: REAL ? ((D.SEASON && D.SEASON.drills) || 0) : (S.club.drillsDone || []).length + 9,
+      year: new Date().getFullYear()
+    };
+  }
+
+  function openWrapped(){
+    var go = function(){
+      var w = seasonStats();
+      modal('<div class="wrapped"><div class="eyebrow">'+t("w.eyebrow", {year:w.year})+'</div><h3>'+esc(w.name.split(" ")[0])+', '+t("w.title")+'</h3>'+
+        '<div class="w-grid">'+
+          '<div class="w-big"><b>'+w.sessions+'</b><small>'+t("w.sessions")+'</small></div>'+
+          '<div class="w-big"><b>'+w.level.toFixed(2)+'</b><small>'+t("w.level")+'</small></div>'+
+          (w.gain ? '<div class="w-big hl"><b>+'+w.gain.d.toFixed(1)+'</b><small>'+t("w.gain", {shot:esc(w.gain.k)})+'</small></div>' : '')+
+          (w.best ? '<div class="w-big"><b>'+w.best.v.toFixed(1)+'</b><small>'+t("w.best", {shot:esc(w.best.k)})+'</small></div>' : '')+
+          '<div class="w-big"><b>'+w.wins+'<span>/'+w.played+'</span></b><small>'+t("w.matches")+'</small></div>'+
+          '<div class="w-big"><b>'+fmt(w.points)+'</b><small>'+t("w.points")+'</small></div>'+
+        '</div>'+
+        '<p class="muted small">'+t("w.foot", {n:w.rated, d:w.drills})+'</p>'+
+        '<button class="btn btn-primary" id="wShare">'+t("w.share")+'</button></div>');
+    };
+    if(REAL && role === "player" && !LADDER.length) PVB.act.ladder().then(function(l){ LADDER = l || []; go(); }).catch(go);
+    else { if(!REAL && !LADDER.length) LADDER = demoLadder(); go(); }
+  }
+
+  function drawWrapped(){
+    var w = seasonStats(), W = 1080, H = 1920, cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    var x = cv.getContext("2d"), volt = "#C8F542";
+    x.fillStyle = "#0B0D0F"; x.fillRect(0, 0, W, H);
+    var g = x.createRadialGradient(W*0.85, H*0.1, 40, W*0.85, H*0.1, 1100);
+    g.addColorStop(0, "rgba(200,245,66,.25)"); g.addColorStop(1, "rgba(200,245,66,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = volt; x.lineWidth = 10; x.lineJoin = "round"; x.lineCap = "round";
+    x.beginPath(); [[0,230],[320,230],[380,150],[450,330],[530,80],[600,290],[660,230],[W,230]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+    x.fillStyle = "#9AA3AB"; x.font = "600 34px 'IBM Plex Mono', monospace"; x.fillText((w.club + " · " + w.year).toUpperCase(), 80, 420);
+    x.fillStyle = "#F2F4F5"; x.font = "400 120px Anton, Impact, sans-serif"; x.fillText(t("w.story").toUpperCase(), 76, 560);
+    x.fillStyle = volt; x.fillText(w.name.split(" ")[0].toUpperCase(), 76, 690);
+    var tiles = [[w.sessions, t("w.sessions")], [w.level.toFixed(2), t("w.level")]];
+    if(w.gain) tiles.push(["+" + w.gain.d.toFixed(1), t("w.gainShort", {shot:w.gain.k})]);
+    if(w.best) tiles.push([w.best.v.toFixed(1), t("w.bestShort", {shot:w.best.k})]);
+    tiles.push([w.wins + "/" + w.played, t("w.matches")]); tiles.push([fmt(w.points), t("w.points")]);
+    tiles.slice(0, 6).forEach(function(tl, i){
+      var col = i % 2, row = Math.floor(i / 2), tx = 80 + col * 470, ty = 800 + row * 300;
+      x.fillStyle = "rgba(255,255,255,.06)"; roundRect(x, tx, ty, 440, 260, 28); x.fill();
+      x.fillStyle = i === 2 ? volt : "#F2F4F5"; x.font = "400 120px Anton, Impact, sans-serif"; x.fillText(String(tl[0]), tx + 34, ty + 150);
+      x.fillStyle = "#9AA3AB"; x.font = "600 30px 'Instrument Sans', sans-serif"; x.fillText(String(tl[1]).slice(0, 26), tx + 36, ty + 210);
+    });
+    x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace"; x.fillText("PADELVITALS.COM", 80, H - 90);
+    x.fillStyle = volt; x.font = "400 46px Anton, Impact, sans-serif"; x.textAlign = "right"; x.fillText("PADEL VITALS", W - 80, H - 84); x.textAlign = "left";
+    return cv;
+  }
+  function shareWrapped(){
+    var f = document.fonts ? Promise.all(["120px Anton", "600 30px 'Instrument Sans'", "600 30px 'IBM Plex Mono'"].map(function(s){ return document.fonts.load(s).catch(function(){}); })) : Promise.resolve();
+    f.then(function(){
+      drawWrapped().toBlob(function(blob){
+        var file = new File([blob], "padel-vitals-season.png", {type:"image/png"});
+        if(navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], text:t("w.shareText")}).catch(function(){}); return; }
+        var url = URL.createObjectURL(blob);
+        modal('<div class="share-prev"><img src="'+url+'" alt=""><a class="btn btn-primary" href="'+url+'" download="padel-vitals-season.png">'+t("share.save")+'</a></div>');
+      }, "image/png");
+    });
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("[data-wrapped]")){ openWrapped(); return; }
+    if(e.target.closest("#wShare")) shareWrapped();
+  });
+
   /* ================================================================ monthly report link */
   function reportUrl(memberId){
     return "report.html" + (REAL ? "?player=" + encodeURIComponent(memberId) : "?demo=1");
@@ -2226,6 +2552,9 @@
     renderGoals();
     renderPassport();
     renderMatches();
+    renderChallenges();
+    renderFeed();
+    renderLessons();
     if($("#v-squad") && $("#v-squad").classList.contains("on")) renderRanks();
     paintBell();
     paintInstall();
@@ -2301,6 +2630,7 @@
     $("#gate").hidden = false;
     document.body.classList.add("gated");
     setTimeout(mountGoogle, 0);
+    setTimeout(paintJoinGate, 0);
     setTimeout(function(){ var f = $("#gateEmail"); if(f) f.focus(); }, 60);
   }
   function closeGate(){
@@ -2369,7 +2699,23 @@
     REAL = true;
     document.body.classList.add("real");
     var st = await PVB.whoami();
-    if(!st.member){ showNoClub(st); return true; }
+    if(!st.member){
+      var jc = joinCode();
+      if(jc){
+        try{
+          var r = await PVB.act.requestJoin(jc, st.googleName || "");
+          if(r === "member"){ clearJoin(); location.reload(); return true; }
+          var cl = await PVB.act.clubByCode(jc);
+          showWaiting(st, cl && cl.name); return true;
+        }catch(err){ clearJoin(); oops(err); }
+      }
+      try{
+        var reqs = await PVB.act.myRequests();
+        if(reqs && reqs.length){ showWaiting(st, reqs[0].clubs && reqs[0].clubs.name); return true; }
+      }catch(err){}
+      showNoClub(st); return true;
+    }
+    clearJoin();
     var cst = st.member.clubs && st.member.clubs.status;
     if((cst === "paused" || cst === "cancelled") && !(PVB.state && PVB.state.isAdmin)){ showPaused(st); return true; }
     if(!st.member.full_name && st.googleName){ try{ await PVB.act.setMyName(st.googleName); st.member.full_name = st.googleName; }catch(e){} }

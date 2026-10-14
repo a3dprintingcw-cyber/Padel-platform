@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=30">
+<link rel="stylesheet" href="assets/styles.css?v=31">
 </head>
 <body class="app-body">
 
@@ -25,6 +25,7 @@
   <div class="gate-card">
     <div class="gate-brand"><svg class="logo-glyph" viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="8"/><path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="8" stroke-linecap="round"/><rect x="32" y="89" width="16" height="27" rx="3" fill="#F2F4F5"/><polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/></svg><span><span class="r2">Padel</span>&nbsp;Vitals</span></div>
     <p class="gate-sub" data-i18n="c.welcome">Your training, your ratings, your progress.</p>
+    <div class="gate-join" id="gateJoin" hidden></div>
     <div class="gsi" id="gsiBtn"></div>
     <button class="btn btn-google gate-go" type="button" id="gateGoogle">
       <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C36.9 40.2 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
@@ -112,6 +113,11 @@
       <div class="next" id="nextWrap"></div>
       <button class="nba" id="nba" hidden></button>
 
+      <div class="card stack-b" id="chalCard" hidden>
+        <div class="card-hd"><h3 data-i18n="ch.title">This week</h3><span class="chip ochre" id="chalStreak"></span></div>
+        <div id="chalBody" class="chal-list"></div>
+      </div>
+
       <div class="card goals-card stack-b">
         <div class="card-hd"><h3 data-i18n="g.yours">Your goals</h3></div>
         <div id="goalsDash"></div>
@@ -144,6 +150,11 @@
         <p data-i18n="s.sub">Say yes or no and your coach sees it straight away.</p>
       </div>
       <div class="sessions" id="schedList"></div>
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="ls.title">Private lessons</h3></div>
+        <p class="muted small" data-i18n="ls.sub">One on one with a coach. Book a free slot, pay at the club.</p>
+        <div id="lessonsBody"></div>
+      </div>
     </section>
 
     <!-- ===== DEVELOPMENT ===== -->
@@ -207,6 +218,7 @@
         <div class="track tall"><i id="lvBar" style="width:65%;background:linear-gradient(90deg,var(--sea),var(--coral))"></i></div>
         <div class="lv-actions">
           <button class="btn btn-primary btn-sm" data-sharecard data-i18n="share.btn">Share my level</button>
+          <button class="btn btn-ghost btn-sm" data-wrapped data-i18n="w.btn">My season</button>
           <a class="btn btn-ghost btn-sm" id="myReport" href="report.html?demo=1" target="_blank" rel="noopener" data-i18n="r.mine">My monthly report</a>
         </div>
       </div>
@@ -272,6 +284,10 @@
       <div class="view-head">
         <h2 data-i18n="q.title">Group standings</h2>
         <p data-i18n="q.sub">Points earned this season.</p>
+      </div>
+      <div class="card stack-b">
+        <div class="card-hd"><h3 data-i18n="f.title">Club feed</h3></div>
+        <div id="feedBody" class="feed-list"></div>
       </div>
       <div class="card"><div class="standings" id="standings"></div></div>
       <div class="card-hd stack"><h3 data-i18n="q.badges">Your badges</h3></div>
@@ -359,6 +375,11 @@
         <p data-i18n="t.cschedSub">Who is coming, and check them in when they arrive.</p>
       </div>
       <div class="stack" id="cschedList"></div>
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="ls.mine">Your private lessons</h3><button class="btn btn-primary btn-sm" id="addSlot" data-i18n="ls.add">Add open slots</button></div>
+        <p class="muted small" data-i18n="ls.coachSub">Players see your open slots and book them in two taps.</p>
+        <div id="cLessonsBody"></div>
+      </div>
     </section>
 
     <!-- ===== COACH: DRILLS ===== -->
@@ -444,15 +465,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=30"></script>
-<script src="assets/store.js?v=30"></script>
-<script src="assets/i18n.js?v=30"></script>
-<script src="assets/qr.js?v=30"></script>
-<script src="assets/site.js?v=30"></script>
-<script src="assets/scan.js?v=30"></script>
-<script src="assets/figure.js?v=30"></script>
+<script src="assets/data.js?v=31"></script>
+<script src="assets/store.js?v=31"></script>
+<script src="assets/i18n.js?v=31"></script>
+<script src="assets/qr.js?v=31"></script>
+<script src="assets/site.js?v=31"></script>
+<script src="assets/scan.js?v=31"></script>
+<script src="assets/figure.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/backend.js?v=30"></script>
-<script src="assets/app.js?v=30"></script>
+<script src="assets/backend.js?v=31"></script>
+<script src="assets/app.js?v=31"></script>
 </body>
 </html>

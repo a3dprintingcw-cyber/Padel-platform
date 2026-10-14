@@ -12,6 +12,23 @@
   function oops(e){ toast((e && e.message) || "Something went wrong"); console.warn(e); }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
   var PLANS = (window.PP && window.PP.PLANS) || [];
+
+  /* Demo club admin (admin.html?demo=1): sample data, nothing is saved. For sales visits. */
+  var DEMO = PAGE === "admin" && new URLSearchParams(location.search).get("demo") === "1";
+  function demoNote(){ toast("Demo club: nothing is saved here"); }
+  if(DEMO){
+    /* a stand-in for the database that answers every call with nothing and saves nothing */
+    var fake = function(){
+      var wrote = false;
+      var h = {get:function(t, k){
+        if(k === "then") return function(ok){ if(wrote) demoNote(); return Promise.resolve({data:null, error:null}).then(ok); };
+        return function(){ if(/^(insert|update|upsert|delete|rpc)$/.test(k)) wrote = true; return px; };
+      }};
+      var px = new Proxy(function(){}, h);
+      return px;
+    };
+    sb = {from:function(){ return fake().from(); }, rpc:function(){ return fake().rpc(); }};
+  }
   var ROLES = {owner:"Owner", coach:"Coach", staff:"Bar staff", player:"Player"};
 
   function gate(html){
@@ -22,6 +39,7 @@
 
   /* ---------------------------------------------------------------- boot */
   async function boot(){
+    if(DEMO){ open(); $("#who").textContent = "Demo"; return demoAdmin(); }
     if(!sb){ gate("<p>Could not reach the server. Check the connection and reload.</p>"); return; }
     var s = await PVB.session();
     if(!s){
@@ -71,6 +89,7 @@
         fail(await sb.rpc("create_club", {p_name:f.name.value.trim(), p_country:cSel.value, p_region:rSel.value,
           p_city:f.city.value.trim(), p_plan:f.plan.value, p_owner_email:f.owner.value.trim().toLowerCase(), p_owner_name:f.ownerName.value.trim()}));
         toast(f.name.value + " created. The owner signs in with " + f.owner.value);
+        if(f.dataset.lead){ patchLead(f.dataset.lead, {status:"won"}); delete f.dataset.lead; }
         f.reset(); cSel.value = "US"; fillRegions();
         listClubs();
       }catch(err){
@@ -79,7 +98,73 @@
       }
     };
     listClubs();
+    listLeads();
   }
+
+  /* ---------------------------------------------------------------- sales pipeline */
+  var LEADS = [], leadFilter = "open";
+  var LEAD_ST = {new:"New", contacted:"Contacted", demo:"Demo done", won:"Won", lost:"Lost"};
+  async function listLeads(){
+    try{ LEADS = fail(await sb.from("leads").select("*").order("created_at", {ascending:false})) || []; }
+    catch(err){ oops(err); LEADS = []; }
+    drawLeads();
+  }
+  function drawLeads(){
+    var box = $("#leadList");
+    if(!box) return;
+    var counts = {open:0, all:LEADS.length};
+    LEADS.forEach(function(l){ counts[l.status] = (counts[l.status] || 0) + 1; if(l.status !== "won" && l.status !== "lost") counts.open++; });
+    $("#leadCount").textContent = (counts["new"] || 0) + " new";
+    $("#leadTabs").innerHTML = [["open","Open"],["new","New"],["contacted","Contacted"],["demo","Demo done"],["won","Won"],["lost","Lost"],["all","All"]].map(function(x){
+      return '<button class="'+(leadFilter === x[0] ? "on" : "")+'" data-lf="'+x[0]+'">'+x[1]+' '+(counts[x[0]] || 0)+'</button>';
+    }).join("");
+    var today = new Date().toISOString().slice(0,10);
+    var list = LEADS.filter(function(l){
+      return leadFilter === "all" || (leadFilter === "open" ? (l.status !== "won" && l.status !== "lost") : l.status === leadFilter);
+    }).sort(function(a,b){ return (a.follow_up || "9999") < (b.follow_up || "9999") ? -1 : 1; });
+    box.innerHTML = list.length ? list.map(function(l){
+      var plan = window.PP ? window.PP.planFor(l.players) : null;
+      var c = window.PP ? window.PP.country(l.country) : null;
+      var due = l.follow_up && l.follow_up <= today && l.status !== "won" && l.status !== "lost";
+      var wa = l.phone ? "https://wa.me/" + String(l.phone).replace(/[^0-9]/g, "") : "";
+      return '<div class="arow lead'+(due ? " due" : "")+'"><div class="arow-main">'+
+        '<b>'+esc(l.club_name)+'</b><small>'+esc([l.city, l.region, c ? c.name : l.country].filter(Boolean).join(", "))+' · '+new Date(l.created_at).toLocaleDateString()+'</small>'+
+        '<small>'+esc(l.contact || "")+(l.email ? ' · <a class="coral" href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>' : '')+(wa ? ' · <a class="coral" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a>' : '')+'</small>'+
+        '<small>'+(l.players || 0)+' players · '+(l.coaches || 0)+' coaches'+(plan ? ' · fits '+plan.name+' ('+money(plan.price)+')' : '')+'</small>'+
+        (l.notes ? '<small class="lead-note">“'+esc(l.notes)+'”</small>' : '')+
+        '<textarea class="lead-admin" data-lead-notes="'+l.id+'" rows="2" placeholder="Your notes">'+esc(l.admin_notes || "")+'</textarea></div>'+
+        '<div class="arow-ctl">'+
+          '<select data-lead-status="'+l.id+'">'+Object.keys(LEAD_ST).map(function(k){ return '<option value="'+k+'"'+(k === l.status ? " selected" : "")+'>'+LEAD_ST[k]+'</option>'; }).join("")+'</select>'+
+          '<label class="lead-fu'+(due ? " due" : "")+'"><span>Follow up</span><input type="date" value="'+(l.follow_up || "")+'" data-lead-fu="'+l.id+'"></label>'+
+          (l.status !== "won" ? '<button class="btn btn-ghost btn-sm" data-lead-club="'+l.id+'">Create club</button>' : '')+
+        '</div></div>';
+    }).join("") : '<p class="muted">Nothing here. New registrations from the website show up here.</p>';
+  }
+  async function patchLead(id, patch){
+    try{ fail(await sb.from("leads").update(patch).eq("id", id)); var l = LEADS.filter(function(x){ return x.id === id; })[0]; if(l) Object.assign(l, patch); drawLeads(); toast("Saved"); }
+    catch(err){ oops(err); }
+  }
+  document.addEventListener("click", function(e){
+    var f = e.target.closest("[data-lf]");
+    if(f){ leadFilter = f.dataset.lf; drawLeads(); return; }
+    var c = e.target.closest("[data-lead-club]");
+    if(c){
+      var l = LEADS.filter(function(x){ return x.id === c.dataset.leadClub; })[0], fm = $("#newClub");
+      if(!l || !fm) return;
+      fm.name.value = l.club_name || ""; fm.city.value = l.city || ""; fm.ownerName.value = l.contact || ""; fm.owner.value = l.email || "";
+      if(l.country){ $("#ncCountry").value = l.country; $("#ncCountry").onchange(); if(l.region) $("#ncRegion").value = l.region; }
+      if(window.PP) $("#ncPlan").value = window.PP.planFor(l.players).id;
+      fm.dataset.lead = l.id;
+      $("#newClubCard").scrollIntoView({behavior:"smooth", block:"start"});
+      toast("Filled in from the lead. Check it and tap Create club.");
+    }
+  });
+  document.addEventListener("change", function(e){
+    var s = e.target.closest("[data-lead-status]"), fu = e.target.closest("[data-lead-fu]"), n = e.target.closest("[data-lead-notes]");
+    if(s) patchLead(s.dataset.leadStatus, {status:s.value});
+    if(fu) patchLead(fu.dataset.leadFu, {follow_up:fu.value || null});
+    if(n) patchLead(n.dataset.leadNotes, {admin_notes:n.value});
+  });
 
   async function listClubs(){
     try{
@@ -135,7 +220,49 @@
     await refresh();
   }
 
+  var DEMO_DATA = null;
+  function demoAdmin(){
+    var D = window.R2 || {};
+    var groups = [{id:"g1", name:"Advanced", days:"Tuesday & Thursday"}, {id:"g2", name:"Intermediate", days:"Monday & Wednesday"}, {id:"g3", name:"Kids", days:"Saturday"}];
+    var members = [{id:"o1", full_name:"Kim Bennett", email:"kim@miamipadel.demo", role:"owner", status:"active", level:0}];
+    (D.COACHES || []).slice(0, 4).forEach(function(c, i){
+      members.push({id:"c" + i, full_name:c.n, email:c.n.toLowerCase().replace(/[^a-z]+/g, ".") + "@miamipadel.demo", role:"coach", status:"active", level:0});
+    });
+    members.push({id:"s1", full_name:"Leo Martins", email:"bar@miamipadel.demo", role:"staff", status:"active", level:0});
+    (D.ROSTER || []).forEach(function(p, i){
+      members.push({id:p.id, full_name:p.n, email:p.n.toLowerCase().replace(/[^a-z]+/g, ".") + "@gmail.com", role:"player",
+                    group_id:p.group === "Intermediate" ? "g2" : "g1", level:p.rating, status:i === 7 ? "invited" : "active"});
+    });
+    var now = Date.now();
+    var sessions = (D.SCHEDULE || []).map(function(x, i){
+      return {id:x.id, kind:x.kind, starts_at:new Date(x.date).toISOString(), duration_min:90, court:x.court, capacity:x.cap, points:x.pts, group_id:"g1", coach_id:"c" + (i % 4)};
+    });
+    var rewards = (D.SHOP || []).map(function(r, i){ return {id:"r" + i, name:r.n, detail:r.s, icon:r.ico, cost:r.c, active:true}; });
+    var std = (D.ROSTER || []).map(function(p){ return {member_id:p.id, full_name:p.n, points:p.pts, sessions:p.streak}; });
+    var att = (D.ROSTER || []).slice(0, 6).map(function(p){ return {member_id:p.id, created_at:new Date(now - 3*864e5).toISOString()}; });
+    CLUB = {id:"demo", name:"Miami Padel Club", country:"US", region:"Florida", city:"Miami", plan:"club", status:"active",
+            color:"#C8F542", points_rules:{attended:50, on_time:10, camp:100, drill:15, friend:150, tournament:200},
+            billing_status:"active", paid_until:new Date(now + 21*864e5).toISOString()};
+    DEMO_DATA = {members:members, groups:groups, sessions:sessions, rewards:rewards, std:std, att:att};
+    REQS = [{id:"q1", email:"marta.lopez@gmail.com", full_name:"Marta Lopez", created_at:new Date(now - 864e5).toISOString()},
+            {id:"q2", email:"ben.carter@gmail.com", full_name:"Ben Carter", created_at:new Date(now - 2*36e5).toISOString()}];
+    $("#clubName").textContent = CLUB.name;
+    $("#clubWhere").textContent = "Florida, US · Club plan · demo club, nothing is saved";
+    var bar = document.createElement("div"); bar.className = "demo-bar";
+    bar.innerHTML = 'Demo club with sample data. Try anything: nothing is saved. <a class="coral" href="register.html">Get this for your club</a>';
+    $("#main").insertBefore(bar, $("#main").firstChild);
+    tabs();
+    return refresh();
+  }
+
   async function refresh(){
+    if(DEMO){
+      MEMBERS = DEMO_DATA.members; GROUPS = DEMO_DATA.groups;
+      drawStats(DEMO_DATA.std, DEMO_DATA.att);
+      drawMembers(); drawGroups(); drawSessions(DEMO_DATA.sessions); drawRewards(DEMO_DATA.rewards); drawClub(); drawBilling();
+      drawExtras(); drawRequests();
+      return;
+    }
     var id = CLUB.id, now = new Date();
     var q = await Promise.all([
       sb.from("members").select("id, full_name, email, role, group_id, level, status, created_at").eq("club_id", id).order("role").order("full_name"),
@@ -150,6 +277,7 @@
     MEMBERS = q[0].data || []; GROUPS = q[1].data || [];
     drawStats(q[4].data || [], q[5].data || []);
     drawMembers(); drawGroups(); drawSessions(q[2].data || []); drawRewards(q[3].data || []); drawClub(); drawBilling();
+    drawExtras(); loadRequests();
   }
 
   function tabs(){
@@ -304,6 +432,122 @@
     if(r && window.confirm("Delete this reward?")){
       try{ fail(await sb.from("rewards").delete().eq("id", r.dataset.rRemove)); refresh(); }catch(err){ oops(err); }
     }
+  });
+
+  /* ---------------------------------------------------------------- QR join, paste list, messages */
+  var JOIN = null, REQS = [];
+  function appBase(){ return location.origin + location.pathname.replace(/[^/]*$/, ""); }
+  function drawExtras(){
+    var opts = '<option value="">No group</option>' + GROUPS.map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
+    if($("#pasteGroup")) $("#pasteGroup").innerHTML = opts;
+    if($("#msgGroup")) $("#msgGroup").innerHTML = '<option value="">Everyone at the club</option>' + GROUPS.map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+' group</option>'; }).join("");
+    if(JOIN) drawJoin();
+  }
+  function drawJoin(){
+    var url = appBase() + "app.html?join=" + JOIN;
+    var qr = window.r2qr ? window.r2qr.svg(url, {fg:"#0B0D0F", bg:"#FFFFFF"}) : "";
+    $("#joinBody").innerHTML = '<div class="join-row"><div class="join-qr">'+qr+'</div><div><div class="eyebrow">Club code</div><b class="join-code">'+esc(JOIN)+'</b>'+
+      '<p class="muted small">'+esc(url)+'</p><div class="row-btns"><button class="btn btn-primary btn-sm" id="printPoster">Print poster</button>'+
+      '<button class="btn btn-ghost btn-sm" id="copyJoin">Copy link</button></div></div></div>';
+  }
+  async function loadRequests(){
+    if(DEMO) return drawRequests();
+    try{ REQS = fail(await sb.from("join_requests").select("id, email, full_name, created_at, status").eq("club_id", CLUB.id).eq("status", "pending").order("created_at")) || []; }
+    catch(err){ REQS = []; }
+    drawRequests();
+  }
+  function drawRequests(){
+    var box = $("#reqList"), chip = $("#reqCount");
+    if(!box) return;
+    chip.hidden = !REQS.length; chip.textContent = REQS.length + " waiting";
+    var opts = '<option value="">No group</option>' + GROUPS.map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
+    box.innerHTML = REQS.map(function(r){
+      return '<div class="arow"><div class="arow-main"><b>'+esc(r.full_name || r.email)+'</b><small>'+esc(r.email)+' · asked '+new Date(r.created_at).toLocaleDateString()+'</small></div>'+
+        '<div class="arow-ctl"><select data-req-group="'+r.id+'">'+opts+'</select>'+
+        '<button class="btn btn-primary btn-sm" data-req-ok="'+r.id+'">Approve</button><button class="link-btn danger" data-req-no="'+r.id+'">Decline</button></div></div>';
+    }).join("");
+  }
+  function parsePaste(text){
+    var out = [], seen = {};
+    String(text || "").split(/\r?\n/).forEach(function(line){
+      var m = line.match(/[^\s<>,;"']+@[^\s<>,;"']+\.[a-z]{2,}/i);
+      if(!m) return;
+      var email = m[0].toLowerCase();
+      if(seen[email]) return; seen[email] = 1;
+      var name = line.replace(m[0], "").replace(/[<>"';,\t|]+/g, " ").replace(/\s+/g, " ").trim();
+      out.push({email:email, name:name});
+    });
+    return out;
+  }
+  document.addEventListener("input", function(e){
+    if(e.target.id !== "pasteList") return;
+    var list = parsePaste(e.target.value), have = {};
+    MEMBERS.forEach(function(m){ have[(m.email || "").toLowerCase()] = 1; });
+    var fresh = list.filter(function(x){ return !have[x.email]; });
+    $("#pasteInfo").textContent = list.length ? fresh.length + " new player" + (fresh.length === 1 ? "" : "s") + (list.length > fresh.length ? ", " + (list.length - fresh.length) + " already in" : "") : "";
+    $("#pasteAdd").disabled = !fresh.length;
+  });
+  document.addEventListener("click", async function(e){
+    if(e.target.closest("#showJoin")){
+      if(DEMO){ JOIN = "DEMO42"; drawJoin(); return; }
+      try{ JOIN = fail(await sb.rpc("club_join_code", {p_club:CLUB.id})); drawJoin(); }catch(err){ oops(err); }
+      return;
+    }
+    if(e.target.closest("#copyJoin")){
+      var u = appBase() + "app.html?join=" + JOIN;
+      if(navigator.clipboard) navigator.clipboard.writeText(u).then(function(){ toast("Link copied"); });
+      return;
+    }
+    if(e.target.closest("#printPoster")){
+      var url = appBase() + "app.html?join=" + JOIN;
+      var w = window.open("", "_blank");
+      if(!w) return;
+      w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(CLUB.name)+' · Join</title>'+
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;600&display=swap">'+
+        '<style>@page{size:A4;margin:0}body{margin:0;font-family:"Instrument Sans",sans-serif;background:#0B0D0F;color:#F2F4F5;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+        '.p{width:210mm;height:297mm;box-sizing:border-box;padding:22mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center}'+
+        'h1{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:66px;line-height:1;text-transform:uppercase;margin:0}h1 span{color:#C8F542}'+
+        '.q{background:#fff;padding:14mm;border-radius:10mm;width:105mm;height:105mm;box-sizing:content-box}.q svg{width:100%;height:100%}'+
+        '.s{font-size:22px;color:#BFC6CC;max-width:150mm;line-height:1.4}.c{font-family:monospace;font-size:26px;letter-spacing:.2em;color:#C8F542}.b{font-family:Anton,Impact,sans-serif;font-size:26px;text-transform:uppercase}</style></head>'+
+        '<body><div class="p"><div><div class="s" style="text-transform:uppercase;letter-spacing:.2em;font-size:16px">'+esc(CLUB.name)+'</div>'+
+        '<h1>Train here?<br><span>Track it.</span></h1></div>'+
+        '<div class="q">'+(window.r2qr ? window.r2qr.svg(url, {fg:"#0B0D0F", bg:"#FFFFFF"}) : "")+'</div>'+
+        '<div class="s">Scan, sign in with Google and ask to join. Your coach rates your shots and you watch your level climb.</div>'+
+        '<div><div class="c">CODE '+esc(JOIN)+'</div><div class="b" style="margin-top:10px">Padel <span style="color:#C8F542">Vitals</span></div></div></div>'+
+        '<scr'+'ipt>setTimeout(function(){print()},600)</scr'+'ipt></body></html>');
+      w.document.close();
+      return;
+    }
+    var ok = e.target.closest("[data-req-ok]"), no = e.target.closest("[data-req-no]");
+    if(ok || no){
+      var id = (ok || no).dataset[ok ? "reqOk" : "reqNo"];
+      var g = ok ? (document.querySelector('[data-req-group="'+id+'"]') || {}).value || null : null;
+      if(DEMO){ demoNote(); return; }
+      try{ fail(await sb.rpc("answer_join", {p_request:id, p_ok:!!ok, p_group:g})); toast(ok ? "Approved. They're in." : "Declined"); refresh(); }
+      catch(err){ oops(err); }
+      return;
+    }
+    if(e.target.closest("#pasteAdd")){
+      var list = parsePaste($("#pasteList").value), have = {};
+      MEMBERS.forEach(function(m){ have[(m.email || "").toLowerCase()] = 1; });
+      var rows = list.filter(function(x){ return !have[x.email]; }).map(function(x){
+        return {club_id:CLUB.id, email:x.email, full_name:x.name, role:"player", group_id:$("#pasteGroup").value || null, status:"invited"};
+      });
+      if(!rows.length) return;
+      if(DEMO){ demoNote(); return; }
+      $("#pasteAdd").disabled = true;
+      try{ fail(await sb.from("members").upsert(rows, {onConflict:"club_id,email", ignoreDuplicates:true})); toast(rows.length + " players added"); $("#pasteList").value = ""; $("#pasteInfo").textContent = ""; refresh(); }
+      catch(err){ oops(err); $("#pasteAdd").disabled = false; }
+    }
+  });
+  $("#msgForm") && ($("#msgForm").onsubmit = async function(e){
+    e.preventDefault();
+    var f = e.target;
+    if(DEMO){ demoNote(); return; }
+    try{
+      var n = fail(await sb.rpc("announce", {p_club:CLUB.id, p_group:f.group.value || null, p_title:f.title.value.trim(), p_body:f.body.value.trim()}));
+      toast("Sent to " + n + " people"); f.reset();
+    }catch(err){ oops(err); }
   });
 
   /* billing: the owner subscribes with PayPal; the webhook marks the club as paying */

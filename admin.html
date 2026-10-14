@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=30">
+<link rel="stylesheet" href="assets/styles.css?v=31">
 </head>
 <body data-page="admin">
 <header class="topbar">
@@ -32,6 +32,7 @@
     <button data-tab="sessions">Schedule</button>
     <button data-tab="rewards">Rewards</button>
     <button data-tab="club">Club</button>
+    <button data-tab="messages">Messages</button>
     <button data-tab="billing">Billing</button>
   </nav>
 
@@ -50,6 +51,21 @@
         </div>
         <button class="btn btn-primary" type="submit">Add</button>
       </form>
+    </div>
+    <div class="card astack" id="joinCard">
+      <div class="card-hd"><h3>Join with a QR code</h3><span class="chip sea" id="reqCount" hidden></span></div>
+      <p class="muted small">Print the poster for your front desk. Players scan it, sign in with Google and ask to join. You approve them here.</p>
+      <div id="joinBody"><button class="btn btn-primary btn-sm" id="showJoin">Show my club's QR code</button></div>
+      <div id="reqList" class="alist"></div>
+    </div>
+    <div class="card astack">
+      <div class="card-hd"><h3>Paste a player list</h3></div>
+      <p class="muted small">One player per line: name and email, from Excel, WhatsApp or anywhere. Example: <span class="mono">Natalia Gomez, natalia@gmail.com</span></p>
+      <textarea id="pasteList" rows="5" class="paste"></textarea>
+      <div class="field-row">
+        <label class="field"><span>Group</span><select id="pasteGroup"></select></label>
+        <div class="paste-go"><span class="muted small" id="pasteInfo"></span><button class="btn btn-primary btn-sm" id="pasteAdd" disabled>Add players</button></div>
+      </div>
     </div>
     <div id="memberList" class="alist"></div>
   </section>
@@ -132,16 +148,29 @@
     </form>
   </section>
 
+  <section class="apanel" id="p-messages" hidden>
+    <form class="card aform" id="msgForm">
+      <div class="card-hd"><h3>Message your players</h3></div>
+      <p class="muted small">It arrives in their app as a notification, in the bell.</p>
+      <label class="field"><span>To</span><select name="group" id="msgGroup"></select></label>
+      <label class="field"><span>Title</span><input name="title" maxlength="120" required></label>
+      <label class="field"><span>Message</span><textarea name="body" rows="4" maxlength="600"></textarea></label>
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+  </section>
+
   <section class="apanel" id="p-billing" hidden>
     <div class="card astack" id="billingCard"></div>
   </section>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/regions.js?v=30"></script>
-<script src="assets/clubs.js?v=30"></script>
-<script src="assets/backend.js?v=30"></script>
-<script src="assets/site.js?v=30"></script>
-<script src="assets/admin.js?v=30"></script>
+<script src="assets/data.js?v=31"></script>
+<script src="assets/regions.js?v=31"></script>
+<script src="assets/clubs.js?v=31"></script>
+<script src="assets/backend.js?v=31"></script>
+<script src="assets/site.js?v=31"></script>
+<script src="assets/qr.js?v=31"></script>
+<script src="assets/admin.js?v=31"></script>
 </body>
 </html>

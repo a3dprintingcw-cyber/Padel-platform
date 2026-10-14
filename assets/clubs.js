@@ -87,5 +87,5 @@ window.PP = (function(){
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
-  return {CONTACT:CONTACT, PLANS:PLANS, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
+  return {API:{url:"https://kvdruhadevpixomatwsb.supabase.co", key:LIVE_KEY}, CONTACT:CONTACT, PLANS:PLANS, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
 })();
