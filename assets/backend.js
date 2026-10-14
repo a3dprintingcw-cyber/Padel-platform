@@ -97,7 +97,7 @@ window.PV = (function(){
     el.innerHTML = "";
     var w = Math.max(200, Math.min(400, Math.round(el.getBoundingClientRect().width) || 320));
     var lang = (function(){ try{ return localStorage.getItem("pv.lang") || ""; }catch(e){ return ""; } })();
-    window.google.accounts.id.renderButton(el, {type:"standard", theme:"filled_black", size:"large", shape:"pill",
+    window.google.accounts.id.renderButton(el, {type:"standard", theme:"outline", size:"large", shape:"pill",
       text:"continue_with", logo_alignment:"center", width:w, locale: lang || undefined});
     return true;
   }
