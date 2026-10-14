@@ -1,5 +1,5 @@
 /* Service worker. App shell cached so the courtside wifi stops mattering. */
-var V = "35";
+var V = "36";
 var CACHE = "pv-v" + V;
 var SHELL = [
   "./", "index.html", "app.html", "states.html", "pricing.html", "register.html", "404.html", "manifest.webmanifest",
@@ -12,7 +12,8 @@ var SHELL = [
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){
     return Promise.all(SHELL.map(function(u){
-      return c.add(u).catch(function(){ /* a missing file must not fail the install */ });
+      return fetch(u).then(clean).then(function(r){ if(r && r.ok) return c.put(u, r); })
+        .catch(function(){ /* a missing file must not fail the install */ });
     }));
   }).then(function(){ return self.skipWaiting(); }));
 });
@@ -27,6 +28,13 @@ self.addEventListener("activate", function(e){
   }).then(function(){ return self.clients.claim(); }));
 });
 
+/* Cloudflare serves /app.html as /app via a redirect. Browsers refuse a redirected
+   response for a page load, so store and serve a clean copy instead. */
+function clean(res){
+  if(!res || !res.redirected) return Promise.resolve(res);
+  return res.blob().then(function(b){ return new Response(b, {status:res.status, statusText:res.statusText, headers:res.headers}); });
+}
+
 /* network first for pages so updates land, cache first for assets */
 self.addEventListener("fetch", function(e){
   var req = e.request;
@@ -34,11 +42,10 @@ self.addEventListener("fetch", function(e){
   var isPage = req.mode === "navigate" || req.destination === "document";
   if(isPage){
     e.respondWith(fetch(req).then(function(res){
-      var copy = res.clone();
-      caches.open(CACHE).then(function(c){ c.put(req, copy); });
+      if(res.ok && res.type === "basic"){ var copy = res.clone(); clean(copy).then(function(c2){ caches.open(CACHE).then(function(c){ c.put(req, c2); }); }); }
       return res;
     }).catch(function(){
-      return caches.match(req).then(function(m){ return m || caches.match("app.html"); });
+      return caches.match(req).then(function(m){ return m || caches.match("app.html"); }).then(clean);
     }));
     return;
   }
