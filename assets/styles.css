@@ -1063,3 +1063,5 @@ button.avatar{border:0;cursor:pointer}
 .share-prev .btn{justify-content:center}
 .lvup{text-align:center;display:grid;gap:10px;justify-items:center}
 .lvup-n{font-family:var(--f-display);font-size:84px;line-height:1;color:var(--coral)}
+.gsi{display:flex;justify-content:center;min-height:0}
+.gsi:not(:empty){min-height:44px;margin-bottom:4px}

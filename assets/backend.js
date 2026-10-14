@@ -56,6 +56,52 @@ window.PV = (function(){
     if(r.error) throw r.error;
   }
 
+  /* Google's own button: the sign in happens on padelvitals.com, so Google shows our
+     name instead of the database address. Falls back to the redirect flow if it can't load. */
+  var GOOGLE_CLIENT = "322214738887-us8n7ng30vdd75p20np46ut333tblifj.apps.googleusercontent.com";
+  var gsiLoading = null;
+  function loadGsi(){
+    if(window.google && window.google.accounts && window.google.accounts.id) return Promise.resolve();
+    if(gsiLoading) return gsiLoading;
+    gsiLoading = new Promise(function(ok, no){
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.defer = true;
+      s.onload = function(){ ok(); }; s.onerror = function(){ gsiLoading = null; no(new Error("gsi")); };
+      document.head.appendChild(s);
+      setTimeout(function(){ no(new Error("gsi timeout")); }, 8000);
+    });
+    return gsiLoading;
+  }
+  async function sha256hex(str){
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2, "0"); }).join("");
+  }
+  async function googleButton(el, done, failed){
+    if(!sb || !el) throw new Error("offline");
+    await loadGsi();
+    var raw = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(function(b){ return b.toString(16).padStart(2, "0"); }).join("");
+    var hashed = await sha256hex(raw);
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT,
+      nonce: hashed,
+      ux_mode: "popup",
+      itp_support: true,
+      use_fedcm_for_button: true,
+      callback: function(resp){
+        sb.auth.signInWithIdToken({provider:"google", token:resp.credential, nonce:raw}).then(function(r){
+          if(r.error) throw r.error;
+          if(done) done(r.data);
+        }).catch(function(err){ if(failed) failed(err); });
+      }
+    });
+    el.innerHTML = "";
+    var w = Math.max(200, Math.min(400, Math.round(el.getBoundingClientRect().width) || 320));
+    var lang = (function(){ try{ return localStorage.getItem("pv.lang") || ""; }catch(e){ return ""; } })();
+    window.google.accounts.id.renderButton(el, {type:"standard", theme:"filled_black", size:"large", shape:"pill",
+      text:"continue_with", logo_alignment:"center", width:w, locale: lang || undefined});
+    return true;
+  }
+
   async function signUp(email, password){
     var r = await sb.auth.signUp({email:email, password:password, options:{
       emailRedirectTo: location.origin + location.pathname
@@ -404,7 +450,7 @@ window.PV = (function(){
     get state(){ return state; },
     client: sb,
     SKILLS: SKILLS,
-    session: session, signIn: signIn, signInWithGoogle: signInWithGoogle, signUp: signUp, signOut: signOut,
+    session: session, signIn: signIn, signInWithGoogle: signInWithGoogle, googleButton: googleButton, signUp: signUp, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
     whoami: whoami, useClub: useClub, load: load, loadChecks: loadChecks, playerDetail: playerDetail, going: going, drillCounts: drillCounts, roleName: roleName,
     act: act

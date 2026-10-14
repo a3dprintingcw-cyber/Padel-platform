@@ -1818,9 +1818,20 @@
   });
 
   /* ---------------------------------------------------------------- sign in / out */
+  var gsiDone = false;
+  function mountGoogle(){
+    if(gsiDone || !PVB || !PVB.ready || !PVB.googleButton) return;
+    gsiDone = true;
+    PVB.googleButton($("#gsiBtn"), function(){
+      bootReal().catch(function(err){ console.warn(err); oops(err); });
+    }, function(err){ oops(err); }).then(function(){
+      $("#gateGoogle").hidden = true;
+    }).catch(function(){ gsiDone = false; /* the redirect button stays */ });
+  }
   function openGate(){
     $("#gate").hidden = false;
     document.body.classList.add("gated");
+    setTimeout(mountGoogle, 0);
     setTimeout(function(){ var f = $("#gateEmail"); if(f) f.focus(); }, 60);
   }
   function closeGate(){
@@ -1908,7 +1919,7 @@
 
   function showNoClub(st){
     openGate();
-    ["gateGoogle","gateEmailToggle","gateForm","gateLinks"].forEach(function(id){ var el = $("#"+id); if(el) el.hidden = true; });
+    ["gsiBtn","gateGoogle","gateEmailToggle","gateForm","gateLinks"].forEach(function(id){ var el = $("#"+id); if(el) el.hidden = true; });
     $$(".gate-card .or, .gate-demo, .gate-note").forEach(function(el){ el.hidden = true; });
     var box = $("#gateNoClub");
     box.hidden = false;

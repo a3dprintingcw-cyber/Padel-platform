@@ -25,7 +25,9 @@
     if(!sb){ gate("<p>Could not reach the server. Check the connection and reload.</p>"); return; }
     var s = await PVB.session();
     if(!s){
-      gate('<p>Sign in to continue.</p><button class="btn btn-google gate-go" id="goGoogle">Continue with Google</button>');
+      gate('<p>Sign in to continue.</p><div class="gsi" id="gsiBtn"></div><button class="btn btn-google gate-go" id="goGoogle">Continue with Google</button>');
+      PVB.googleButton($("#gsiBtn"), function(){ boot().catch(oops); }, oops)
+        .then(function(){ var b = $("#goGoogle"); if(b) b.hidden = true; }).catch(function(){});
       return;
     }
     var st = await PVB.whoami();
