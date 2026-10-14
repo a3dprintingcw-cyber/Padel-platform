@@ -58,6 +58,24 @@ window.PP = (function(){
     return n;
   }
 
+  /* Live from the database: the moment a club is created in the platform panel, its region
+     shows as taken here. STATUS above still works as a manual override. */
+  var LIVE_URL = "https://kvdruhadevpixomatwsb.supabase.co/rest/v1/territories?select=country,region,status,club";
+  var LIVE_KEY = "sb_publishable_HitT5azoipqgS8IoNTUPVw_ZiS-BX1U";
+  if(window.fetch){
+    fetch(LIVE_URL, {headers:{apikey:LIVE_KEY, Authorization:"Bearer " + LIVE_KEY}})
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){
+        if(!rows || !rows.length) return;
+        rows.forEach(function(t){
+          var k = t.country + "|" + t.region;
+          if(!STATUS[k] || STATUS[k].status !== "taken") STATUS[k] = {status:t.status, club:t.club || ""};
+        });
+        /* same signal a language change sends: every list on the page redraws */
+        document.dispatchEvent(new CustomEvent("pv:lang", {detail:{territories:true}}));
+      }).catch(function(){});
+  }
+
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
