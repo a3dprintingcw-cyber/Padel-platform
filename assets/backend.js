@@ -259,6 +259,52 @@ window.PV = (function(){
     window.r2store.clubPatch({});
   }
 
+  /* ------------------------------------------------------------------ coach reads */
+
+  function nameOf(id){
+    var m = (state.members || []).filter(function(x){ return x.id === id; })[0];
+    return m ? (m.full_name || m.email) : "";
+  }
+
+  /* one player's full picture for the coach: latest and previous score per skill, notes, sessions */
+  async function playerDetail(memberId){
+    var since = new Date(Date.now() - 84*864e5).toISOString();
+    var q = await Promise.all([
+      sb.from("ratings").select("skill, score, created_at, coach_id").eq("player_id", memberId).order("created_at", {ascending:false}),
+      sb.from("notes").select("body, created_at, coach_id").eq("player_id", memberId).order("created_at", {ascending:false}).limit(5),
+      sb.from("attendance").select("session_id", {count:"exact", head:true}).eq("member_id", memberId).gte("created_at", since)
+    ]);
+    var latest = {}, prev = {};
+    (q[0].data || []).forEach(function(r){
+      if(!latest[r.skill]) latest[r.skill] = r; else if(!prev[r.skill]) prev[r.skill] = r;
+    });
+    return {
+      skills: SKILLS.map(function(s){
+        var l = latest[s.k], p = prev[s.k];
+        return {n:s.k, v: l ? Number(l.score) : 0, d: l && p ? Math.round((l.score - p.score)*10)/10 : 0,
+                on: l ? dayMonth(l.created_at) : "", unrated: !l};
+      }),
+      notes: (q[1].data || []).map(function(n){ return {body:n.body, on:dayMonth(n.created_at), by:nameOf(n.coach_id)}; }),
+      sessions: q[2].count || 0
+    };
+  }
+
+  /* who said yes to a session */
+  async function going(sessionId){
+    var r = await sb.from("rsvps").select("member_id").eq("session_id", sessionId).eq("status", "in");
+    return (r.data || []).map(function(x){ return nameOf(x.member_id); }).filter(Boolean).sort();
+  }
+
+  /* how many players finished each drill */
+  async function drillCounts(){
+    var ids = (window.R2.DRILLS || []).map(function(d){ return d.id; });
+    if(!ids.length) return {};
+    var r = await sb.from("drill_done").select("drill_id").in("drill_id", ids);
+    var out = {};
+    (r.data || []).forEach(function(x){ out[x.drill_id] = (out[x.drill_id] || 0) + 1; });
+    return out;
+  }
+
   function roleName(r){ return {owner:"Club owner", coach:"Coach", staff:"Bar staff", player:"Player"}[r] || r; }
 
   /* ------------------------------------------------------------------ actions */
@@ -303,7 +349,7 @@ window.PV = (function(){
     SKILLS: SKILLS,
     session: session, signIn: signIn, signInWithGoogle: signInWithGoogle, signUp: signUp, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
-    whoami: whoami, useClub: useClub, load: load, loadChecks: loadChecks, roleName: roleName,
+    whoami: whoami, useClub: useClub, load: load, loadChecks: loadChecks, playerDetail: playerDetail, going: going, drillCounts: drillCounts, roleName: roleName,
     act: act
   };
 })();

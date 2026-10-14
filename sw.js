@@ -1,5 +1,5 @@
 /* Service worker. App shell cached so the courtside wifi stops mattering. */
-var CACHE = "pv-v23";
+var CACHE = "pv-v24";
 var SHELL = [
   "./", "index.html", "app.html", "states.html", "pricing.html", "register.html", "404.html", "manifest.webmanifest",
   "assets/styles.css?v=22", "assets/data.js?v=22", "assets/store.js?v=22", "assets/i18n.js?v=22",

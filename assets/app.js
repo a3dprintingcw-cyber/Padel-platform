@@ -71,14 +71,17 @@
 
   var NAV = [
     {id:"dash",     roles:"player", icon:'<path d="M3 10.5L11 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z"/>'},
-    {id:"schedule", roles:"player coach", icon:'<rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/>'},
+    {id:"schedule", roles:"player", icon:'<rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/>'},
     {id:"dev",      roles:"player", icon:'<path d="M4 18V9M9.5 18V4M15 18v-6M20.5 18v-9"/>'},
     {id:"pts",      roles:"player", icon:'<circle cx="11" cy="11" r="8"/><path d="M11 7v8M8 11h6"/>'},
-    {id:"home",     roles:"player coach", icon:'<path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/>'},
-    {id:"squad",    roles:"player coach", icon:'<path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/>'},
-    {id:"coach",    roles:"player coach", icon:'<circle cx="8" cy="8" r="3.2"/><path d="M3 19c0-3 2.4-5 5-5s5 2 5 5M16 6.5a3 3 0 0 1 0 6M17 19c0-2.2-.9-3.9-2.3-4.6"/>'},
-    {id:"staff",    roles:"coach",        icon:'<path d="M11 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4L6.5 16.8l.9-5L3.8 8.3l5-.7z"/>'},
-    {id:"bar",      roles:"bar coach",          icon:'<path d="M4 4h14l-6 7v7h3M4 4l6 7M8 18h4"/>'}
+    {id:"home",     roles:"player", icon:'<path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/>'},
+    {id:"squad",    roles:"player", icon:'<path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/>'},
+    {id:"coach",    roles:"player", icon:'<circle cx="8" cy="8" r="3.2"/><path d="M3 19c0-3 2.4-5 5-5s5 2 5 5M16 6.5a3 3 0 0 1 0 6M17 19c0-2.2-.9-3.9-2.3-4.6"/>'},
+    {id:"staff",    roles:"coach", icon:'<path d="M4 11.5l4.5 4.5L18 6.5"/>'},
+    {id:"players",  roles:"coach", icon:'<path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/>'},
+    {id:"cschedule",roles:"coach", icon:'<rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/>'},
+    {id:"cdrills",  roles:"coach", icon:'<path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/>'},
+    {id:"bar",      roles:"bar", icon:'<path d="M4 4h14l-6 7v7h3M4 4l6 7M8 18h4"/>'}
   ];
 
   /* ---------------------------------------------------------------- who is signed in
@@ -100,12 +103,6 @@
 
   function navFor(r){
     var list = NAV.filter(function(n){ return n.roles.indexOf(r) !== -1; });
-    /* A coach opens the app to check a squad in, not to read their own stats.
-       Put the tool they came for where the thumb already is. */
-    if(r === "coach"){
-      var i = list.findIndex(function(n){ return n.id === "staff"; });
-      if(i > 1) list.splice(1, 0, list.splice(i, 1)[0]);
-    }
     return list;
   }
 
@@ -194,7 +191,7 @@
     S.patch({role:r});
     document.body.dataset.role = r;
     buildNav();
-    show(r === "coach" ? "staff" : navFor(r)[0].id, true);
+    show(navFor(r)[0].id, true);
   }
 
   /* ---------------------------------------------------------------- points */
@@ -582,11 +579,7 @@
         '<div class="chips"><span class="chip">'+d.lvl+'</span><span class="chip sea">'+d.kit+'</span></div>'+
         '<button class="done">'+(done ? "&#10003; " + t("h.done") : t("h.mark") + " +15")+'</button>'+
         '</div></article>';
-    }).join("") +
-    '<button class="upload" data-go="staff">'+
-    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 18v2h16v-2"/></svg>'+
-    '<span class="ul-t">'+t("h.upload")+'</span>'+
-    '<span class="ul-s">'+t("t.sub")+'</span></button>';
+    }).join("") ;
   }
 
   document.addEventListener("click", function(e){
@@ -692,8 +685,6 @@
 
     var sel2 = $("#assessPlayer");
     if(sel2 && REAL){ var keepP = sel2.value; sel2.innerHTML = ""; }
-    var ng = $("#newGroup");
-    if(ng) ng.innerHTML = '<option value="">—</option>' + (D.GROUPS || []).map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
     if(sel2 && !sel2.options.length)
       sel2.innerHTML = D.ROSTER.map(function(p){ return '<option value="'+p.id+'">'+esc(p.n)+'</option>'; }).join("");
     if(sel2 && REAL && keepP) sel2.value = keepP;
@@ -791,7 +782,7 @@
         g:"linear-gradient(140deg,#262B31,#171A1E)"
       });
       $("#drillName").value = "";
-      renderDrills();
+      renderDrills(); renderCDrills();
       window.r2toast(nm + " · " + t("t.publish"));
     }
   });
@@ -800,9 +791,15 @@
     if(!e.target.closest("#addPlayer")) return;
     var em = ($("#newEmail").value || "").trim().toLowerCase(), nm2 = ($("#newName").value || "").trim();
     if(!/^\S+@\S+\.\S+$/.test(em)){ $("#newEmail").focus(); return; }
-    if(!REAL){ window.r2toast(nm2 + " · " + t("t.addBtn")); $("#newEmail").value = ""; $("#newName").value = ""; return; }
-    $("#newEmail").value = ""; $("#newName").value = "";
-    sync(PVB.act.invite(em, nm2, "player", $("#newGroup").value || null), (nm2 || em) + " · " + t("t.addBtn"));
+    var nmShow = nm2 || em.split("@")[0];
+    if(!REAL){
+      D.ROSTER.push({id:"p"+Date.now(), i:nmShow.split(" ").map(function(w){ return w.charAt(0); }).join("").slice(0,2).toUpperCase(),
+                     n:nmShow, pts:0, streak:0, rating:1.5, group:$("#newGroup").value || "", status:"invited", email:em});
+      window.r2toast(nmShow + " · " + t("t.added")); $("#newEmail").value = ""; $("#newName").value = "";
+      $("#addPlayerCard").hidden = true; renderPlayers(); renderStaff(); return;
+    }
+    $("#newEmail").value = ""; $("#newName").value = ""; $("#addPlayerCard").hidden = true;
+    sync(PVB.act.invite(em, nm2, "player", $("#newGroup").value || null), nmShow + " · " + t("t.added"));
   });
 
   function undoChecks(){
@@ -828,6 +825,232 @@
   document.addEventListener("keydown", function(e){
     if(e.key === "Enter" && e.target.id === "barCode"){ e.preventDefault(); checkCode(); }
   });
+
+  /* ---------------------------------------------------------------- coach: players */
+
+  var plQuery = "", plGroup = "", openPid = null, sheetSkill = null;
+  var demoRatings = {};   /* demo only: what the coach scored this visit */
+
+  function seeded(str){ var h = 0; for(var i = 0; i < str.length; i++) h = (h*31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
+
+  /* demo players need believable numbers without a database */
+  function demoDetail(p){
+    var base = D.SKILLS;
+    var skills = base.map(function(s){
+      var own = demoRatings[p.id] && demoRatings[p.id][s.n];
+      if(own) return own;
+      if(p.me) return {n:s.n, v:s.v, d:s.d, on:s.on, unrated:false};
+      var r = seeded(p.id + s.n);
+      var v = Math.max(2, Math.min(9.5, p.rating * 1.75 + ((r % 21) - 10) / 10));
+      return {n:s.n, v:Math.round(v*10)/10, d:((r % 9) - 3) / 10, on:"29 Sep", unrated:false};
+    });
+    return {skills:skills, sessions:p.streak || 0,
+            notes: p.me ? [{body:"Bandeja is coming along. Keep the elbow high and finish the swing toward the side glass.", on:"29 Sep", by:"Diego Morales"}] : []};
+  }
+
+  function renderPlayers(){
+    var list = $("#plList");
+    if(!list) return;
+    var groups = [];
+    D.ROSTER.forEach(function(p){ if(p.group && groups.indexOf(p.group) === -1) groups.push(p.group); });
+    $("#plGroups").innerHTML = groups.length > 1 ? ['',].concat(groups).map(function(g){
+      return '<button class="'+(g === plGroup ? "on" : "")+'" data-plg="'+esc(g)+'">'+(g ? esc(g) : t("c.all"))+'</button>';
+    }).join("") : "";
+    $("#plGroups").hidden = groups.length < 2;
+    var q = plQuery.trim().toLowerCase();
+    var rows = D.ROSTER.filter(function(p){
+      return (!plGroup || p.group === plGroup) && (!q || p.n.toLowerCase().indexOf(q) !== -1);
+    }).slice().sort(function(a,b){ return a.n.localeCompare(b.n); });
+    list.innerHTML = rows.length ? rows.map(function(p, i){
+      return '<button class="pl-row" data-player="'+p.id+'">'+
+        '<span class="avatar sm'+(i%2?" sea":"")+'">'+esc(p.i)+'</span>'+
+        '<span class="who">'+esc(p.n)+'<small>'+esc(p.group || t("t.noGroup"))+(p.status === "invited" ? ' · '+t("t.invited") : '')+'</small></span>'+
+        '<span class="pl-lv"><b>'+(Number(p.rating) || 0).toFixed(2)+'</b><small>'+t("t.level")+'</small></span>'+
+        '<span class="pl-go" aria-hidden="true">&rsaquo;</span></button>';
+    }).join("") : '<p class="empty">'+(D.ROSTER.length ? t("t.noPlayer") : t("t.noPlayersYet"))+'</p>';
+    var ng = $("#newGroup");
+    if(ng && REAL) ng.innerHTML = '<option value="">'+t("t.noGroup")+'</option>' + (D.GROUPS || []).map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
+    else if(ng && !ng.options.length) ng.innerHTML = groups.map(function(g){ return '<option>'+esc(g)+'</option>'; }).join("");
+  }
+
+  function sheetHtml(p, det){
+    var skills = det ? det.skills : [];
+    if(!sheetSkill) sheetSkill = (skills.filter(function(s){ return s.unrated; })[0] || skills[0] || {n:D.SKILLS[0].n}).n;
+    var cur = skills.filter(function(s){ return s.n === sheetSkill; })[0];
+    var start = cur && !cur.unrated ? cur.v : 5;
+    return '<div class="psheet">'+
+      '<div class="ps-head"><span class="avatar lg">'+esc(p.i)+'</span><div><h3>'+esc(p.n)+'</h3>'+
+        '<div class="muted small">'+esc(p.group || t("t.noGroup"))+(p.email ? ' · '+esc(p.email) : '')+'</div></div></div>'+
+      '<div class="ps-stats">'+
+        '<div class="ps-stat"><small>'+t("t.level")+'</small><div class="ps-level">'+
+          '<button class="ps-step" data-lv="-0.25" aria-label="-">&minus;</button><b id="psLevel">'+(Number(p.rating)||0).toFixed(2)+'</b>'+
+          '<button class="ps-step" data-lv="0.25" aria-label="+">+</button></div></div>'+
+        '<div class="ps-stat"><small>'+t("t.sessions12")+'</small><b>'+(det ? det.sessions : "…")+'</b></div>'+
+        '<div class="ps-stat"><small>'+t("c.points")+'</small><b>'+fmt(p.pts || 0)+'</b></div>'+
+      '</div>'+
+      (det ? '<div class="eyebrow ps-eb">'+t("t.tapSkill")+'</div><div class="ps-skills">'+skills.map(function(s){
+        return '<button class="ps-skill'+(s.n === sheetSkill ? " on" : "")+'" data-pskill="'+esc(s.n)+'">'+
+          '<span>'+esc(s.n)+'</span>'+
+          '<span class="track"><i style="width:'+(s.unrated ? 0 : s.v*10)+'%"></i></span>'+
+          '<b>'+(s.unrated ? "–" : s.v.toFixed(1))+'</b>'+
+          (s.d ? '<em class="'+(s.d > 0 ? "up" : "down")+'">'+(s.d > 0 ? "+" : "")+s.d.toFixed(1)+'</em>' : '<em></em>')+
+        '</button>';
+      }).join("")+'</div>'+
+      '<div class="ps-rate">'+
+        '<div class="ps-rate-hd"><b>'+esc(sheetSkill)+'</b><span class="ps-score" id="psOut">'+start.toFixed(1)+'</span></div>'+
+        '<input type="range" id="psVal" min="0" max="10" step="0.1" value="'+start+'">'+
+        '<textarea id="psNote" rows="2" placeholder="'+esc(t("t.notePh"))+'"></textarea>'+
+        '<button class="btn btn-primary" id="psSave">'+t("t.saveRating")+'</button>'+
+      '</div>'+
+      '<div class="eyebrow ps-eb">'+t("v.notes")+'</div>'+
+      (det.notes.length ? det.notes.map(function(n){
+        return '<div class="ps-note"><p>'+esc(n.body)+'</p><small>'+esc(n.on)+(n.by ? ' · '+esc(n.by) : '')+'</small></div>';
+      }).join("") : '<p class="muted small">'+t("t.noNotesYet")+'</p>')
+      : '<p class="muted small ps-load">…</p>')+
+    '</div>';
+  }
+
+  function openPlayer(pid, keepSkill){
+    var p = D.ROSTER.filter(function(x){ return x.id === pid; })[0];
+    if(!p) return;
+    if(openPid !== pid || !keepSkill) sheetSkill = null;
+    openPid = pid;
+    if(!REAL){ modal(sheetHtml(p, demoDetail(p))); return; }
+    if(!keepSkill) modal(sheetHtml(p, null));
+    PVB.playerDetail(pid).then(function(det){
+      if(openPid !== pid || $("#modal").hidden) return;
+      $("#modalBody").innerHTML = sheetHtml(p, det);
+    }).catch(oops);
+  }
+
+  document.addEventListener("click", function(e){
+    var r = e.target.closest("[data-player]");
+    if(r){ openPlayer(r.dataset.player); return; }
+    var g = e.target.closest("[data-plg]");
+    if(g){ plGroup = g.dataset.plg; renderPlayers(); return; }
+    if(e.target.closest("#addToggle")){
+      var c = $("#addPlayerCard"); c.hidden = !c.hidden;
+      if(!c.hidden) setTimeout(function(){ $("#newName").focus(); }, 30);
+      return;
+    }
+    var sk = e.target.closest("[data-pskill]");
+    if(sk){
+      sheetSkill = sk.dataset.pskill;
+      $$(".ps-skill").forEach(function(b){ b.classList.toggle("on", b === sk); });
+      var val = sk.querySelector("b").textContent;
+      var v = val === "–" ? 5 : parseFloat(val);
+      $(".ps-rate-hd b").textContent = sheetSkill;
+      $("#psVal").value = v; $("#psOut").textContent = v.toFixed(1);
+      return;
+    }
+    var lv = e.target.closest("[data-lv]");
+    if(lv && openPid){
+      var p = D.ROSTER.filter(function(x){ return x.id === openPid; })[0];
+      var next = Math.max(0, Math.min(7, Math.round(((Number(p.rating)||0) + parseFloat(lv.dataset.lv))*100)/100));
+      p.rating = next; $("#psLevel").textContent = next.toFixed(2);
+      haptic();
+      if(REAL){
+        clearTimeout(lv._t);
+        window.clearTimeout(window.__pvLv);
+        var pid = openPid;
+        window.__pvLv = setTimeout(function(){
+          PVB.act.setLevel(pid, next).then(function(){ window.r2toast(p.n.split(" ")[0] + " · " + t("t.level") + " " + next.toFixed(2)); renderPlayers(); }).catch(oops);
+        }, 700);
+      } else renderPlayers();
+      return;
+    }
+    if(e.target.closest("#psSave") && openPid){
+      var pl = D.ROSTER.filter(function(x){ return x.id === openPid; })[0];
+      var score = Math.round(parseFloat($("#psVal").value)*10)/10, note = ($("#psNote").value || "").trim();
+      var skill = sheetSkill, msg = pl.n.split(" ")[0] + " · " + skill + " " + score.toFixed(1);
+      haptic(18);
+      if(!REAL){
+        demoRatings[pl.id] = demoRatings[pl.id] || {};
+        var was = demoDetail(pl).skills.filter(function(s){ return s.n === skill; })[0];
+        demoRatings[pl.id][skill] = {n:skill, v:score, d: was ? Math.round((score - was.v)*10)/10 : 0, on:t("t.today"), unrated:false};
+        if(pl.me){ S.setSkill(skill, score); applyEdits(); renderSkills(); }
+        window.r2toast(msg);
+        openPlayer(pl.id, true);
+        return;
+      }
+      var jobs = [PVB.act.rate(pl.id, skill, score)];
+      if(note) jobs.push(PVB.act.note(pl.id, note));
+      $("#psSave").disabled = true;
+      Promise.all(jobs).then(function(){ window.r2toast(msg); openPlayer(pl.id, true); }).catch(function(err){ oops(err); $("#psSave").disabled = false; });
+    }
+  });
+
+  document.addEventListener("input", function(e){
+    if(e.target.id === "psVal") $("#psOut").textContent = parseFloat(e.target.value).toFixed(1);
+    if(e.target.id === "plFind"){ plQuery = e.target.value; renderPlayers(); }
+  });
+
+  /* ---------------------------------------------------------------- coach: schedule */
+
+  var goingOpen = {};
+
+  function renderCSchedule(){
+    var el = $("#cschedList");
+    if(!el) return;
+    el.innerHTML = D.SCHEDULE.length ? D.SCHEDULE.map(function(s){
+      var taken = s.taken || 0, open = goingOpen[s.id];
+      return '<article class="sess csess">'+
+        '<div class="sess-when"><b>'+fmtDay(s.date)+'</b><span>'+fmtTime(s.date)+'</span></div>'+
+        '<div class="sess-body">'+
+          '<h4>'+esc(s.kind)+'</h4>'+
+          '<div class="sess-meta">'+[s.court, s.coach].filter(Boolean).map(esc).join(' &middot; ')+'</div>'+
+          '<div class="cs-fill"><span class="track"><i style="width:'+Math.min(100, s.cap ? taken/s.cap*100 : 0)+'%"></i></span>'+
+          '<b>'+taken+'/'+(s.cap || "–")+'</b> <small>'+t("t.coming")+'</small></div>'+
+          (open ? '<div class="cs-names">'+(open === "…" ? "…" : (open.length ? open.map(esc).join(", ") : t("t.nobody")))+'</div>' : '')+
+        '</div>'+
+        '<div class="sess-act">'+
+          '<button class="btn btn-primary btn-sm" data-checkfor="'+s.id+'">'+t("t.checkTitle")+'</button>'+
+          '<button class="btn btn-ghost btn-sm" data-who="'+s.id+'">'+(open ? t("t.hide") : t("t.whoComing"))+'</button>'+
+        '</div></article>';
+    }).join("") : '<p class="empty">'+t("t.noSessions")+'</p>';
+  }
+
+  document.addEventListener("click", function(e){
+    var w = e.target.closest("[data-who]");
+    if(w){
+      var sid = w.dataset.who;
+      if(goingOpen[sid]){ delete goingOpen[sid]; renderCSchedule(); return; }
+      if(!REAL){
+        var s = D.SCHEDULE.filter(function(x){ return x.id === sid; })[0];
+        var pool = D.ROSTER.slice().sort(function(a,b){ return seeded(sid+a.id) - seeded(sid+b.id); });
+        goingOpen[sid] = pool.slice(0, Math.min(pool.length, s.taken || 0)).map(function(p){ return p.n; }).sort();
+        renderCSchedule(); return;
+      }
+      goingOpen[sid] = "…"; renderCSchedule();
+      PVB.going(sid).then(function(names){ goingOpen[sid] = names; renderCSchedule(); }).catch(function(err){ delete goingOpen[sid]; oops(err); renderCSchedule(); });
+      return;
+    }
+    var c = e.target.closest("[data-checkfor]");
+    if(c){
+      checkSession = c.dataset.checkfor;
+      var sel = $("#checkSession"); if(sel) sel.value = checkSession;
+      rosterQuery = ""; var f = $("#rosterFind"); if(f) f.value = "";
+      renderStaff(); show("staff", true);
+    }
+  });
+
+  /* ---------------------------------------------------------------- coach: drills */
+
+  var drillDoneCounts = {};
+
+  function renderCDrills(){
+    var el = $("#cdrillList");
+    if(!el) return;
+    el.innerHTML = D.DRILLS.length ? D.DRILLS.map(function(d){
+      var n = REAL ? (drillDoneCounts[d.id] || 0) : seeded(d.id) % Math.max(1, D.ROSTER.length);
+      return '<div class="cd-row"><div><b>'+esc(d.n)+'</b><small>'+[d.lvl, d.dur, d.kit].filter(Boolean).map(esc).join(' · ')+'</small></div>'+
+        '<span class="chip sea">'+n+' '+t("t.done")+'</span></div>';
+    }).join("") : '<p class="muted small">'+t("t.noDrills")+'</p>';
+  }
+  function refreshDrillCounts(){
+    if(!REAL || role !== "coach") return;
+    PVB.drillCounts().then(function(c){ drillDoneCounts = c; renderCDrills(); }).catch(function(){});
+  }
 
   /* ---------------------------------------------------------------- kantine staff */
 
@@ -1088,6 +1311,9 @@
     renderSquad();
     renderCoaches();
     renderStaff();
+    renderPlayers();
+    renderCSchedule();
+    renderCDrills();
     renderLive();
     renderQueue();
     scanNote();
@@ -1103,7 +1329,7 @@
     var chip = document.querySelector(".pts-chip");
     if(chip) chip.hidden = role !== "player";
     $("#squadLine").textContent = [P.squad, P.days, P.coach].filter(Boolean).join(" · ");
-    if(REAL) paintReal();
+    if(REAL){ paintReal(); refreshDrillCounts(); }
   }
 
   /* real accounts: the numbers and texts that are written into app.html for the demo */

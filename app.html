@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=23">
+<link rel="stylesheet" href="assets/styles.css?v=24">
 </head>
 <body class="app-body">
 
@@ -257,66 +257,83 @@
       <div class="cgrid" id="coachList"></div>
     </section>
 
-    <!-- ===== COACH TOOLS ===== -->
+    <!-- ===== COACH: CHECK-IN ===== -->
     <section class="view" id="v-staff">
       <div class="view-head">
-        <h2 data-i18n="t.title">Coach tools</h2>
-        <p data-i18n="t.sub">Check the group in, score a skill, post a drill.</p>
+        <h2 data-i18n="t.checkTitle">Check-in</h2>
+        <p data-i18n="t.checkSub">Tap each player as they walk on court.</p>
       </div>
+      <div class="card">
+        <div class="card-hd"><h3 data-i18n="t.roster">Today's check-in</h3><span class="chip sea" id="checkCount">0</span></div>
+        <label class="field"><span data-i18n="t.session">Session</span><select id="checkSession"></select></label>
+        <div class="roster-tools">
+          <input type="search" id="rosterFind" class="find" autocomplete="off" spellcheck="false"
+                 data-i18n-attr="placeholder:t.find" placeholder="Find a player">
+          <button class="btn btn-ghost btn-sm" id="checkAll" data-i18n="t.all">All in</button>
+          <button class="btn btn-ghost btn-sm" id="checkNone" data-i18n="t.clear">Clear</button>
+        </div>
+        <div class="roster" id="roster"></div>
+      </div>
+    </section>
 
+    <!-- ===== COACH: PLAYERS ===== -->
+    <section class="view" id="v-players">
+      <div class="view-head view-head-row">
+        <div>
+          <h2 data-i18n="t.playersTitle">Players</h2>
+          <p data-i18n="t.playersSub">Tap a player to rate shots, leave a note or set their level.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="addToggle" data-i18n="t.addPlayer">Add a player</button>
+      </div>
+      <div class="card" id="addPlayerCard" hidden>
+        <div class="field-row">
+          <label class="field"><span data-i18n="g.name">Name</span><input type="text" id="newName" autocomplete="off"></label>
+          <label class="field"><span data-i18n="c.email">Email</span><input type="email" id="newEmail" inputmode="email" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <label class="field"><span data-i18n="t.group">Group</span><select id="newGroup"></select></label>
+        <button class="btn btn-primary btn-sm" id="addPlayer" data-i18n="t.addBtn">Add player</button>
+      </div>
+      <input type="search" id="plFind" class="find pl-find" autocomplete="off" spellcheck="false"
+             data-i18n-attr="placeholder:t.find" placeholder="Find a player">
+      <div class="seg pl-groups" id="plGroups"></div>
+      <div class="pl-list" id="plList"></div>
+    </section>
+
+    <!-- ===== COACH: SCHEDULE ===== -->
+    <section class="view" id="v-cschedule">
+      <div class="view-head">
+        <h2 data-i18n="nav.schedule">Schedule</h2>
+        <p data-i18n="t.cschedSub">Who is coming, and check them in when they arrive.</p>
+      </div>
+      <div class="stack" id="cschedList"></div>
+    </section>
+
+    <!-- ===== COACH: DRILLS ===== -->
+    <section class="view" id="v-cdrills">
+      <div class="view-head">
+        <h2 data-i18n="t.drillsTitle">Drills</h2>
+        <p data-i18n="t.drillsSub">Post homework. Players earn points when they finish it.</p>
+      </div>
       <div class="two">
         <div class="card">
-          <div class="card-hd"><h3 data-i18n="t.roster">Today's check-in</h3><span class="chip sea" id="checkCount">0</span></div>
-          <label class="field"><span data-i18n="t.session">Session</span><select id="checkSession"></select></label>
-          <div class="roster-tools">
-            <input type="search" id="rosterFind" class="find" autocomplete="off" spellcheck="false"
-                   data-i18n-attr="placeholder:t.find" placeholder="Find a player">
-            <button class="btn btn-ghost btn-sm" id="checkAll" data-i18n="t.all">All in</button>
-            <button class="btn btn-ghost btn-sm" id="checkNone" data-i18n="t.clear">Clear</button>
+          <div class="card-hd"><h3 data-i18n="t.newDrill">New home drill</h3></div>
+          <label class="field"><span data-i18n="t.drillName">Drill name</span>
+            <input type="text" id="drillName" placeholder="Wall control, 50 touches"></label>
+          <div class="field-row">
+            <label class="field"><span>Level</span>
+              <select id="drillLvl">
+                <option>All levels</option><option>Beginner</option>
+                <option>Intermediate</option><option>Advanced</option>
+              </select></label>
+            <label class="field"><span>Length</span><input type="text" id="drillDur" placeholder="6:12"></label>
           </div>
-          <div class="roster" id="roster"></div>
+          <label class="field"><span>Kit needed</span><input type="text" id="drillKit" placeholder="Wall + ball"></label>
+          <label class="field"><span data-i18n="t.video">Video link (optional)</span><input type="url" id="drillVideo" inputmode="url" placeholder="https://youtu.be/..."></label>
+          <button class="btn btn-primary btn-sm" id="publishDrill" data-i18n="t.publish">Publish to the group</button>
         </div>
-
-        <div class="stack-col">
-          <div class="card">
-            <div class="card-hd"><h3 data-i18n="t.assess">Quick assessment</h3></div>
-            <p class="muted small" data-i18n="t.assessSub">Score a skill and the player sees it in Development.</p>
-            <label class="field"><span data-i18n="c.player">Player</span><select id="assessPlayer"></select></label>
-            <label class="field"><span data-i18n="v.skills">Skill</span><select id="assessSkill"></select></label>
-            <label class="field range">
-              <span>Score <b id="assessOut">6.0</b></span>
-              <input type="range" id="assessVal" min="0" max="10" step="0.1" value="6">
-            </label>
-            <label class="field"><span data-i18n="t.noteLabel">Note for the player (optional)</span>
-              <textarea id="assessNote" rows="2" data-i18n-attr="placeholder:t.notePh" placeholder="What to work on next"></textarea></label>
-            <button class="btn btn-primary btn-sm" id="saveAssess" data-i18n="c.save">Save</button>
-          </div>
-
-          <div class="card">
-            <div class="card-hd"><h3 data-i18n="t.newDrill">New home drill</h3></div>
-            <label class="field"><span data-i18n="t.drillName">Drill name</span>
-              <input type="text" id="drillName" placeholder="Wall control, 50 touches"></label>
-            <div class="field-row">
-              <label class="field"><span>Level</span>
-                <select id="drillLvl">
-                  <option>All levels</option><option>Beginner</option>
-                  <option>Intermediate</option><option>Advanced</option>
-                </select></label>
-              <label class="field"><span>Length</span><input type="text" id="drillDur" placeholder="6:12"></label>
-            </div>
-            <label class="field"><span>Kit needed</span><input type="text" id="drillKit" placeholder="Wall + ball"></label>
-            <label class="field"><span data-i18n="t.video">Video link (optional)</span><input type="url" id="drillVideo" inputmode="url" placeholder="https://youtu.be/..."></label>
-            <button class="btn btn-primary btn-sm" id="publishDrill" data-i18n="t.publish">Publish to the group</button>
-          </div>
-
-          <div class="card" id="addPlayerCard">
-            <div class="card-hd"><h3 data-i18n="t.addPlayer">Add a player</h3></div>
-            <p class="muted small" data-i18n="t.addSub">They sign up with this email and land straight in your club.</p>
-            <label class="field"><span data-i18n="g.name">Name</span><input type="text" id="newName" autocomplete="off"></label>
-            <label class="field"><span data-i18n="c.email">Email</span><input type="email" id="newEmail" inputmode="email" autocomplete="off" spellcheck="false"></label>
-            <label class="field"><span data-i18n="t.group">Group</span><select id="newGroup"></select></label>
-            <button class="btn btn-primary btn-sm" id="addPlayer" data-i18n="t.addBtn">Add player</button>
-          </div>
+        <div class="card">
+          <div class="card-hd"><h3 data-i18n="t.posted">Posted drills</h3></div>
+          <div id="cdrillList"></div>
         </div>
       </div>
     </section>
@@ -374,15 +391,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=23"></script>
-<script src="assets/store.js?v=23"></script>
-<script src="assets/i18n.js?v=23"></script>
-<script src="assets/qr.js?v=23"></script>
-<script src="assets/site.js?v=23"></script>
-<script src="assets/scan.js?v=23"></script>
-<script src="assets/figure.js?v=23"></script>
+<script src="assets/data.js?v=24"></script>
+<script src="assets/store.js?v=24"></script>
+<script src="assets/i18n.js?v=24"></script>
+<script src="assets/qr.js?v=24"></script>
+<script src="assets/site.js?v=24"></script>
+<script src="assets/scan.js?v=24"></script>
+<script src="assets/figure.js?v=24"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/backend.js?v=23"></script>
-<script src="assets/app.js?v=23"></script>
+<script src="assets/backend.js?v=24"></script>
+<script src="assets/app.js?v=24"></script>
 </body>
 </html>
