@@ -612,9 +612,29 @@
     var f = $("#clubForm");
     if(!f) return;
     f.name.value = CLUB.name; f.city.value = CLUB.city || ""; f.color.value = CLUB.color || "#C8F542";
+    var lp = $("#logoPrev");
+    if(lp) lp.innerHTML = CLUB.logo_url ? '<img src="'+esc(CLUB.logo_url)+'" alt="">' : '<span>'+esc((CLUB.name || "?").split(/\s+/).map(function(w){ return w.charAt(0); }).join("").slice(0,3).toUpperCase())+'</span>';
     var r = CLUB.points_rules || {};
     ["attended","on_time","camp","drill","friend","tournament"].forEach(function(k){ if(f[k]) f[k].value = r[k] != null ? r[k] : ""; });
   }
+  document.addEventListener("change", async function(e){
+    if(e.target.id !== "logoFile") return;
+    var file = e.target.files[0];
+    if(!file) return;
+    if(DEMO){ e.target.value = ""; demoNote(); return; }
+    if(file.size > 2 * 1024 * 1024){ toast("Logo must be under 2 MB"); e.target.value = ""; return; }
+    var ext = (file.type.split("/")[1] || "png").replace("svg+xml", "svg").replace("jpeg", "jpg");
+    var path = CLUB.id + "/logo-" + Date.now() + "." + ext;
+    try{
+      toast("Uploading…");
+      var up = await sb.storage.from("logos").upload(path, file, {contentType:file.type, upsert:true});
+      if(up.error) throw up.error;
+      var url = sb.storage.from("logos").getPublicUrl(path).data.publicUrl;
+      fail(await sb.from("clubs").update({logo_url:url}).eq("id", CLUB.id));
+      CLUB.logo_url = url; drawClub(); toast("Logo saved");
+    }catch(err){ oops(err); }
+    e.target.value = "";
+  });
   $("#clubForm") && ($("#clubForm").onsubmit = async function(e){
     e.preventDefault();
     var f = e.target, rules = {};

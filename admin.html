@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=31">
+<link rel="stylesheet" href="assets/styles.css?v=32">
 </head>
 <body data-page="admin">
 <header class="topbar">
@@ -139,6 +139,14 @@
         <label class="field"><span>Club name</span><input name="name" required></label>
         <label class="field"><span>City</span><input name="city"></label>
       </div>
+      <div class="logo-row">
+        <div class="logo-prev" id="logoPrev"></div>
+        <div>
+          <b>Club logo</b>
+          <p class="muted small">Shows in the app, on monthly reports and on every card your players share on Instagram, next to the Padel Vitals logo. PNG with a transparent background works best.</p>
+          <label class="btn btn-ghost btn-sm logo-pick"><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/svg+xml">Upload logo</label>
+        </div>
+      </div>
       <label class="field"><span>Club color</span><input name="color" type="color"></label>
       <div class="card-hd"><h3>Points rules</h3></div>
       <div class="field-row"><label class="field"><span>Training attended</span><input name="attended" type="number" min="0"></label><label class="field"><span>On time</span><input name="on_time" type="number" min="0"></label></div>
@@ -165,12 +173,12 @@
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/data.js?v=31"></script>
-<script src="assets/regions.js?v=31"></script>
-<script src="assets/clubs.js?v=31"></script>
-<script src="assets/backend.js?v=31"></script>
-<script src="assets/site.js?v=31"></script>
-<script src="assets/qr.js?v=31"></script>
-<script src="assets/admin.js?v=31"></script>
+<script src="assets/data.js?v=32"></script>
+<script src="assets/regions.js?v=32"></script>
+<script src="assets/clubs.js?v=32"></script>
+<script src="assets/backend.js?v=32"></script>
+<script src="assets/site.js?v=32"></script>
+<script src="assets/qr.js?v=32"></script>
+<script src="assets/admin.js?v=32"></script>
 </body>
 </html>

@@ -1172,7 +1172,8 @@
       '<div class="fgoal-hd"><b>'+esc(g.skill)+'</b><span>'+(g.done ? '&#10003; '+t("g.reached") : g.now.toFixed(1)+' &rarr; <b>'+g.target.toFixed(1)+'</b>')+'</span></div>'+
       '<div class="track"><i style="width:'+pct+'%"></i></div>'+
       (due && !g.done ? '<small>'+t("g.by")+' '+esc(due)+'</small>' : '')+
-      (g.coachCanDelete ? '<button class="fgoal-x" data-delgoal="'+g.id+'" aria-label="Remove">&times;</button>' : '')+
+      (g.coachCanDelete ? '<button class="fgoal-x" data-delgoal="'+g.id+'" aria-label="Remove">&times;</button>' :
+        (g.done && role === "player" ? '<button class="link-btn fgoal-share" data-sharegoal="'+esc(g.skill)+'" data-target="'+g.target+'">'+t("pp.share")+'</button>' : ''))+
     '</div>';
   }
 
@@ -1329,64 +1330,167 @@
 
   function roundRect(x, c, y, w, h, r){ x.beginPath(); x.moveTo(c+r, y); x.arcTo(c+w, y, c+w, y+h, r); x.arcTo(c+w, y+h, c, y+h, r); x.arcTo(c, y+h, c, y, r); x.arcTo(c, y, c+w, y, r); x.closePath(); }
 
-  function drawCard(){
-    var W = 1080, H = 1350, cv = document.createElement("canvas");
-    cv.width = W; cv.height = H;
-    var x = cv.getContext("2d");
-    var volt = "#C8F542", ink = "#0B0D0F";
-    x.fillStyle = ink; x.fillRect(0, 0, W, H);
-    var g = x.createRadialGradient(W*0.8, H*0.15, 50, W*0.8, H*0.15, 900);
-    g.addColorStop(0, "rgba(200,245,66,.22)"); g.addColorStop(1, "rgba(200,245,66,0)");
-    x.fillStyle = g; x.fillRect(0, 0, W, H);
-    /* pulse line */
-    x.strokeStyle = volt; x.lineWidth = 10; x.lineJoin = "round"; x.lineCap = "round";
-    x.beginPath(); [[0,250],[300,250],[360,170],[430,360],[510,90],[580,310],[640,250],[W,250]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+  /* ---------------------------------------------------------------- share cards
+     Every card carries the club's logo next to ours: free advertising for both. */
 
-    var club = (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent || "Padel Vitals";
-    var name = (account && account.name) || D.PLAYER.name;
-    var lvl = (REAL && D.ME) ? D.ME.level : (D.ROSTER.filter(function(p){ return p.me; })[0] || {rating:3.25}).rating;
-    x.fillStyle = "#9AA3AB"; x.font = "600 34px 'IBM Plex Mono', monospace";
-    x.fillText(club.toUpperCase(), 80, 470);
-    x.fillStyle = "#F2F4F5"; x.font = "700 78px 'Instrument Sans', sans-serif";
-    x.fillText(name, 80, 560);
-    x.fillStyle = volt; x.font = "400 300px Anton, Impact, sans-serif";
-    x.fillText(Number(lvl).toFixed(2), 70, 880);
-    x.fillStyle = "#F2F4F5"; x.font = "600 40px 'IBM Plex Mono', monospace";
-    x.fillText(t("share.level").toUpperCase(), 84, 940);
-
-    var top = D.SKILLS.filter(function(s){ return !s.unrated; }).slice().sort(function(a,b){ return b.v - a.v; }).slice(0, 3);
-    top.forEach(function(s, i){
-      var y = 1010 + i * 82;
-      x.fillStyle = "#F2F4F5"; x.font = "600 36px 'Instrument Sans', sans-serif"; x.fillText(s.n, 84, y + 28);
-      x.fillStyle = "rgba(255,255,255,.12)"; roundRect(x, 420, y + 6, 470, 22, 11); x.fill();
-      x.fillStyle = volt; roundRect(x, 420, y + 6, Math.max(22, 470 * s.v / 10), 22, 11); x.fill();
-      x.fillStyle = "#F2F4F5"; x.font = "400 44px Anton, Impact, sans-serif"; x.fillText(s.v.toFixed(1), 920, y + 32);
+  var logoCache = {};
+  function clubLogoUrl(){ return REAL && D.ME && D.ME.club ? (D.ME.club.logo_url || "") : ""; }
+  function clubName(){ return (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent || "Padel Vitals"; }
+  function clubColor(){ return (REAL && D.ME && D.ME.club && D.ME.club.color) || "#C8F542"; }
+  function loadLogo(){
+    var url = clubLogoUrl();
+    if(!url) return Promise.resolve(null);
+    if(logoCache[url]) return logoCache[url];
+    logoCache[url] = new Promise(function(ok){
+      var im = new Image(); im.crossOrigin = "anonymous";
+      im.onload = function(){ ok(im); }; im.onerror = function(){ ok(null); };
+      im.src = url + (url.indexOf("?") === -1 ? "?" : "&") + "cors=1";
     });
-    x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace";
-    x.fillText("PADELVITALS.COM", 84, H - 70);
-    x.fillStyle = volt; x.font = "400 44px Anton, Impact, sans-serif"; x.textAlign = "right";
-    x.fillText("PADEL VITALS", W - 80, H - 66); x.textAlign = "left";
-    return cv;
+    return logoCache[url];
+  }
+  function cardFonts(){
+    return document.fonts ? Promise.all(["120px Anton", "600 30px 'Instrument Sans'", "600 30px 'IBM Plex Mono'"].map(function(s){ return document.fonts.load(s).catch(function(){}); })) : Promise.resolve();
   }
 
-  function shareCard(){
-    var f = document.fonts ? Promise.all(["300px Anton", "700 78px 'Instrument Sans'", "600 34px 'IBM Plex Mono'"].map(function(x){
-      return document.fonts.load(x).catch(function(){}); })) : Promise.resolve();
-    f.then(shareCardNow);
+  /* our mark, drawn from the same shapes as the logo: racket, handle, pulse */
+  function drawGlyph(x, left, top, h){
+    var s = h / 120;
+    x.save(); x.translate(left, top); x.scale(s, s);
+    x.strokeStyle = "#F2F4F5"; x.lineWidth = 8; x.lineCap = "round"; x.lineJoin = "round";
+    x.beginPath(); x.ellipse(40, 42, 29, 35, 0, 0, Math.PI * 2); x.stroke();
+    x.beginPath(); x.moveTo(24, 71); x.lineTo(35, 90); x.moveTo(56, 71); x.lineTo(45, 90); x.stroke();
+    x.fillStyle = "#F2F4F5"; roundRect(x, 32, 89, 16, 27, 3); x.fill();
+    x.strokeStyle = "#C8F542"; x.lineWidth = 10;
+    x.beginPath(); [[2,44],[21,44],[26,33],[33,60],[40,20],[46,52],[50,44],[78,44]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+    x.restore();
   }
-  function shareCardNow(){
-    var cv = drawCard();
+
+  /* club logo in a white tile, or the club's initials when there is no logo yet */
+  function drawClubMark(x, left, top, size, logo){
+    x.fillStyle = "#FFFFFF"; roundRect(x, left, top, size, size, size * 0.22); x.fill();
+    if(logo){
+      var pad = size * 0.12, box = size - pad * 2, r = Math.min(box / logo.width, box / logo.height);
+      var w = logo.width * r, h = logo.height * r;
+      x.drawImage(logo, left + (size - w) / 2, top + (size - h) / 2, w, h);
+    } else {
+      var ini = clubName().split(/\s+/).map(function(w){ return w.charAt(0); }).join("").slice(0, 3).toUpperCase();
+      x.fillStyle = "#0B0D0F"; x.font = "400 " + Math.round(size * 0.42) + "px Anton, Impact, sans-serif"; x.textAlign = "center";
+      x.fillText(ini, left + size / 2, top + size * 0.64); x.textAlign = "left";
+    }
+  }
+
+  /* the footer every card shares: [club logo] × [Padel Vitals] */
+  function drawBrandRow(x, W, y, logo){
+    var size = 132;
+    drawClubMark(x, 80, y, size, logo);
+    x.fillStyle = "#9AA3AB"; x.font = "400 44px 'Instrument Sans', sans-serif"; x.fillText("×", 80 + size + 34, y + size / 2 + 15);
+    var gx = 80 + size + 92;
+    drawGlyph(x, gx, y + 10, size - 20);
+    x.fillStyle = "#C8F542"; x.font = "400 58px Anton, Impact, sans-serif"; x.fillText("PADEL", gx + 92, y + 64);
+    x.fillStyle = "#F2F4F5"; x.fillText("VITALS", gx + 92, y + 124);
+    x.fillStyle = "#9AA3AB"; x.font = "600 26px 'IBM Plex Mono', monospace"; x.textAlign = "right";
+    x.fillText(clubName().toUpperCase().slice(0, 28), W - 80, y + 64);
+    x.fillText("PADELVITALS.COM", W - 80, y + 112); x.textAlign = "left";
+  }
+
+  function cardBase(W, H){
+    var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    var x = cv.getContext("2d");
+    x.fillStyle = "#0B0D0F"; x.fillRect(0, 0, W, H);
+    var g = x.createRadialGradient(W * 0.85, H * 0.12, 40, W * 0.85, H * 0.12, Math.max(W, H) * 0.7);
+    g.addColorStop(0, "rgba(200,245,66,.24)"); g.addColorStop(1, "rgba(200,245,66,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    /* the club's own color as a thin band on top */
+    x.fillStyle = clubColor(); x.fillRect(0, 0, W, 14);
+    x.strokeStyle = "#C8F542"; x.lineWidth = 10; x.lineJoin = "round"; x.lineCap = "round";
+    var py = 210;
+    x.beginPath(); [[0,py],[300,py],[360,py-80],[430,py+100],[510,py-150],[580,py+60],[640,py],[W,py]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
+    return {cv:cv, x:x};
+  }
+
+  /* spec: {eyebrow, name, big, bigLabel, bars:[[label, 0-10]], tiles:[[value, label, highlight]]} */
+  function makeCard(spec, story, logo){
+    var W = 1080, H = story ? 1920 : 1350, c = cardBase(W, H), x = c.x;
+    var y = story ? 560 : 380;
+    x.fillStyle = "#9AA3AB"; x.font = "600 34px 'IBM Plex Mono', monospace"; x.fillText(String(spec.eyebrow || "").toUpperCase(), 80, y);
+    x.fillStyle = "#F2F4F5"; x.font = "700 76px 'Instrument Sans', sans-serif"; x.fillText(String(spec.name || "").slice(0, 24), 80, y + 90);
+    y += 110;
+    if(spec.big != null){
+      x.fillStyle = "#C8F542"; x.font = "400 " + (story ? 300 : 260) + "px Anton, Impact, sans-serif"; x.fillText(String(spec.big), 70, y + (story ? 290 : 250));
+      x.fillStyle = "#F2F4F5"; x.font = "600 40px 'IBM Plex Mono', monospace"; x.fillText(String(spec.bigLabel || "").toUpperCase(), 84, y + (story ? 360 : 315));
+      y += story ? 420 : 370;
+    }
+    (spec.bars || []).slice(0, 3).forEach(function(b, i){
+      var by = y + i * 82;
+      x.fillStyle = "#F2F4F5"; x.font = "600 36px 'Instrument Sans', sans-serif"; x.fillText(b[0], 84, by + 28);
+      x.fillStyle = "rgba(255,255,255,.12)"; roundRect(x, 420, by + 6, 470, 22, 11); x.fill();
+      x.fillStyle = "#C8F542"; roundRect(x, 420, by + 6, Math.max(22, 470 * b[1] / 10), 22, 11); x.fill();
+      x.fillStyle = "#F2F4F5"; x.font = "400 44px Anton, Impact, sans-serif"; x.fillText(Number(b[1]).toFixed(1), 920, by + 32);
+    });
+    if(spec.bars && spec.bars.length) y += Math.min(3, spec.bars.length) * 82 + 30;
+    var th = story ? 290 : 220, step = story ? 320 : 250;
+    if(story) y += 40;
+    (spec.tiles || []).slice(0, 6).forEach(function(tl, i){
+      var col = i % 2, row = Math.floor(i / 2), tx = 80 + col * 470, ty = y + row * step;
+      x.fillStyle = "rgba(255,255,255,.06)"; roundRect(x, tx, ty, 440, th, 28); x.fill();
+      /* big numbers shrink to fit their tile */
+      var fs = 116, txt = String(tl[0]);
+      x.font = "400 " + fs + "px Anton, Impact, sans-serif";
+      while(x.measureText(txt).width > 372 && fs > 40){ fs -= 6; x.font = "400 " + fs + "px Anton, Impact, sans-serif"; }
+      x.fillStyle = tl[2] ? "#C8F542" : "#F2F4F5"; x.fillText(txt, tx + 34, ty + th * 0.58);
+      x.fillStyle = "#9AA3AB"; x.font = "600 30px 'Instrument Sans', sans-serif"; x.fillText(String(tl[1]).slice(0, 26), tx + 36, ty + th - 45);
+    });
+    drawBrandRow(x, W, H - 230, logo);
+    return c.cv;
+  }
+
+  function shareCanvas(cv, file, text){
     cv.toBlob(function(blob){
-      var file = new File([blob], "padel-vitals-level.png", {type:"image/png"});
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({files:[file], text: t("share.text")}).catch(function(){});
-        return;
-      }
+      var f = new File([blob], file, {type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[f]})){ navigator.share({files:[f], text:text}).catch(function(){}); return; }
       var url = URL.createObjectURL(blob);
-      modal('<div class="share-prev"><img src="'+url+'" alt=""><a class="btn btn-primary" href="'+url+'" download="padel-vitals-level.png">'+t("share.save")+'</a></div>');
+      modal('<div class="share-prev"><img src="'+url+'" alt=""><a class="btn btn-primary" href="'+url+'" download="'+file+'">'+t("share.save")+'</a></div>');
     }, "image/png");
   }
-  document.addEventListener("click", function(e){ if(e.target.closest("[data-sharecard]")) shareCard(); });
+  function buildAndShare(spec, story, file, text){
+    Promise.all([cardFonts(), loadLogo()]).then(function(r){ shareCanvas(makeCard(spec, story, r[1]), file, text); });
+  }
+
+  function myName(){ return (account && account.name) || D.PLAYER.name; }
+  function myLevelNow(){ return REAL ? Number(D.ME && D.ME.level) || 0 : (D.ROSTER.filter(function(p){ return p.me; })[0] || {rating:3.25}).rating; }
+  function topBars(){ return D.SKILLS.filter(function(s){ return !s.unrated; }).slice().sort(function(a,b){ return b.v - a.v; }).slice(0, 3).map(function(s){ return [s.n, s.v]; }); }
+
+  function shareLevel(){
+    buildAndShare({eyebrow:clubName(), name:myName(), big:myLevelNow().toFixed(2), bigLabel:t("share.level"), bars:topBars()},
+                  false, "padel-vitals-level.png", t("share.text"));
+  }
+  function shareGoal(skill, target){
+    buildAndShare({eyebrow:t("sc.goal"), name:myName(), big:Number(target).toFixed(1), bigLabel:skill, bars:topBars()},
+                  false, "padel-vitals-goal.png", t("sc.goalText", {skill:skill}));
+  }
+  function shareWin(score){
+    var lad = (LADDER || []).filter(function(r){ return r.member_id === myId(); })[0] || {};
+    buildAndShare({eyebrow:t("sc.win"), name:myName(), big:"W", bigLabel:score || t("sc.winLabel"),
+                   tiles:[[myLevelNow().toFixed(2), t("w.level")], [(lad.wins || 1) + "/" + (lad.played || 1), t("w.matches")]]},
+                  false, "padel-vitals-win.png", t("sc.winText"));
+  }
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("[data-sharecard]")){ shareLevel(); return; }
+    var g = e.target.closest("[data-sharegoal]");
+    if(g){ shareGoal(g.dataset.sharegoal, g.dataset.target); return; }
+    var w = e.target.closest("[data-sharewin]");
+    if(w){ shareWin(w.dataset.sharewin); return; }
+    var f = e.target.closest("[data-sharefeed]");
+    if(f && FEED){
+      var it = FEED.filter(function(x){ return x.id === f.dataset.sharefeed; })[0];
+      if(!it) return;
+      if(it.kind === "levelup") shareLevel();
+      else if(it.kind === "goal") shareGoal(it.data.skill, it.data.target);
+      else if(it.kind === "matchwin") shareWin(it.data.score);
+    }
+  });
+
 
   /* a level up the player has not celebrated yet gets offered once */
   function levelUpCheck(){
@@ -1801,7 +1905,8 @@
     var act = "";
     if(m.status === "played"){
       var w = m.players.filter(function(p){ return p.team === m.winner; }).map(function(p){ return p.n.split(" ")[0]; }).join(" & ");
-      act = '<p class="muted small">'+t("m.won", {who:esc(w)})+'</p>';
+      var iWon = m.players.some(function(p){ return p.id === me && p.team === m.winner; });
+      act = '<p class="muted small">'+t("m.won", {who:esc(w)})+'</p>'+(iWon ? '<button class="btn btn-primary btn-sm" data-sharewin="'+esc(m.score)+'">'+t("sc.shareWin")+'</button>' : '');
     } else if(past && mine && m.players.length === 4){
       act = '<button class="btn btn-primary btn-sm" data-mresult="'+m.id+'">'+t("m.addResult")+'</button>';
     } else if(!past && mine){
@@ -2073,7 +2178,7 @@
         '<div class="fbody"><p>'+feedText(f)+'</p><small>'+ago(f.at)+'</small>'+
         '<div class="cheers">'+Object.keys(CHEERS).map(function(k){
           return '<button class="cheer'+(mine && mine.emoji === k ? " on" : "")+'" data-cheer="'+k+'" data-feed="'+f.id+'" aria-label="'+k+'">'+CHEERS[k]+(count[k] ? ' <b>'+count[k]+'</b>' : '')+'</button>';
-        }).join("")+'</div></div></div>';
+        }).join("")+(f.who === me ? '<button class="cheer share" data-sharefeed="'+f.id+'">'+t("pp.share")+'</button>' : '')+'</div></div></div>';
     }).join("") : '<p class="muted small">'+t("f.empty")+'</p>';
   }
   document.addEventListener("click", function(e){
@@ -2239,43 +2344,12 @@
     else { if(!REAL && !LADDER.length) LADDER = demoLadder(); go(); }
   }
 
-  function drawWrapped(){
-    var w = seasonStats(), W = 1080, H = 1920, cv = document.createElement("canvas");
-    cv.width = W; cv.height = H;
-    var x = cv.getContext("2d"), volt = "#C8F542";
-    x.fillStyle = "#0B0D0F"; x.fillRect(0, 0, W, H);
-    var g = x.createRadialGradient(W*0.85, H*0.1, 40, W*0.85, H*0.1, 1100);
-    g.addColorStop(0, "rgba(200,245,66,.25)"); g.addColorStop(1, "rgba(200,245,66,0)");
-    x.fillStyle = g; x.fillRect(0, 0, W, H);
-    x.strokeStyle = volt; x.lineWidth = 10; x.lineJoin = "round"; x.lineCap = "round";
-    x.beginPath(); [[0,230],[320,230],[380,150],[450,330],[530,80],[600,290],[660,230],[W,230]].forEach(function(p, i){ i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.stroke();
-    x.fillStyle = "#9AA3AB"; x.font = "600 34px 'IBM Plex Mono', monospace"; x.fillText((w.club + " · " + w.year).toUpperCase(), 80, 420);
-    x.fillStyle = "#F2F4F5"; x.font = "400 120px Anton, Impact, sans-serif"; x.fillText(t("w.story").toUpperCase(), 76, 560);
-    x.fillStyle = volt; x.fillText(w.name.split(" ")[0].toUpperCase(), 76, 690);
-    var tiles = [[w.sessions, t("w.sessions")], [w.level.toFixed(2), t("w.level")]];
-    if(w.gain) tiles.push(["+" + w.gain.d.toFixed(1), t("w.gainShort", {shot:w.gain.k})]);
+  function shareWrapped(){
+    var w = seasonStats(), tiles = [[w.sessions, t("w.sessions")], [w.level.toFixed(2), t("w.level")]];
+    if(w.gain) tiles.push(["+" + w.gain.d.toFixed(1), t("w.gainShort", {shot:w.gain.k}), true]);
     if(w.best) tiles.push([w.best.v.toFixed(1), t("w.bestShort", {shot:w.best.k})]);
     tiles.push([w.wins + "/" + w.played, t("w.matches")]); tiles.push([fmt(w.points), t("w.points")]);
-    tiles.slice(0, 6).forEach(function(tl, i){
-      var col = i % 2, row = Math.floor(i / 2), tx = 80 + col * 470, ty = 800 + row * 300;
-      x.fillStyle = "rgba(255,255,255,.06)"; roundRect(x, tx, ty, 440, 260, 28); x.fill();
-      x.fillStyle = i === 2 ? volt : "#F2F4F5"; x.font = "400 120px Anton, Impact, sans-serif"; x.fillText(String(tl[0]), tx + 34, ty + 150);
-      x.fillStyle = "#9AA3AB"; x.font = "600 30px 'Instrument Sans', sans-serif"; x.fillText(String(tl[1]).slice(0, 26), tx + 36, ty + 210);
-    });
-    x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace"; x.fillText("PADELVITALS.COM", 80, H - 90);
-    x.fillStyle = volt; x.font = "400 46px Anton, Impact, sans-serif"; x.textAlign = "right"; x.fillText("PADEL VITALS", W - 80, H - 84); x.textAlign = "left";
-    return cv;
-  }
-  function shareWrapped(){
-    var f = document.fonts ? Promise.all(["120px Anton", "600 30px 'Instrument Sans'", "600 30px 'IBM Plex Mono'"].map(function(s){ return document.fonts.load(s).catch(function(){}); })) : Promise.resolve();
-    f.then(function(){
-      drawWrapped().toBlob(function(blob){
-        var file = new File([blob], "padel-vitals-season.png", {type:"image/png"});
-        if(navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], text:t("w.shareText")}).catch(function(){}); return; }
-        var url = URL.createObjectURL(blob);
-        modal('<div class="share-prev"><img src="'+url+'" alt=""><a class="btn btn-primary" href="'+url+'" download="padel-vitals-season.png">'+t("share.save")+'</a></div>');
-      }, "image/png");
-    });
+    buildAndShare({eyebrow:t("w.story") + " " + w.year, name:w.name, tiles:tiles}, true, "padel-vitals-season.png", t("w.shareText"));
   }
   document.addEventListener("click", function(e){
     if(e.target.closest("[data-wrapped]")){ openWrapped(); return; }

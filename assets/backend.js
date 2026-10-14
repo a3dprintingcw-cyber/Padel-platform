@@ -132,7 +132,7 @@ window.PV = (function(){
     var meta = s.user.user_metadata || {};
     state.googleName = meta.full_name || meta.name || "";
     var mine = fail(await sb.from("members")
-      .select("id, club_id, role, full_name, email, level, group_id, status, clubs(id, name, country, region, city, color, plan, status, points_rules)")
+      .select("id, club_id, role, full_name, email, level, group_id, status, clubs(id, name, country, region, city, color, logo_url, plan, status, points_rules)")
       .or("user_id.eq." + s.user.id + ",email.eq." + s.user.email.toLowerCase())
       .eq("status", "active"));
     state.clubs = (mine || []).map(function(m){ return m; });
