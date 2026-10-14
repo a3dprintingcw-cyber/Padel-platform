@@ -194,7 +194,7 @@
     S.patch({role:r});
     document.body.dataset.role = r;
     buildNav();
-    show(navFor(r)[0].id, true);
+    show(r === "coach" ? "staff" : navFor(r)[0].id, true);
   }
 
   /* ---------------------------------------------------------------- points */

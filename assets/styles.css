@@ -1,6 +1,8 @@
 /* R2PRO — shared stylesheet
    Dark, single-theme by choice: this is a court-side app, it commits to one look. */
 
+[hidden]{display:none !important}
+
 :root{
   --ink:#0B0D0F;
   --court:#171A1E;
