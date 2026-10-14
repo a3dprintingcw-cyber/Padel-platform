@@ -217,32 +217,35 @@
       return !bad.length;
     };
 
-    /* every registration also lands in the sales pipeline, even if WhatsApp never gets sent */
-    var leadSent = "";
+    /* registrations go straight into the sales pipeline in the platform panel */
     var saveLead = function(){
-      var f = form, key = [f.club.value, f.email.value, f.players.value].join("|");
-      if(leadSent === key || !PP.API) return;
-      leadSent = key;
+      var f = form;
       var lead = {club_name:f.club.value.trim(), country:coSel.value, region:f.state.value, city:f.city.value.trim(),
                   contact:f.name.value.trim(), email:f.email.value.trim(), phone:f.phone.value.trim(),
-                  players:f.players.value, coaches:f.coaches.value, plan:f.plan.value, notes:f.notes.value.trim(),
+                  players:f.players.value, coaches:f.coaches.value, plan:f.plan.value,
+                  notes:[f.billing.value === "Yearly" ? "Wants yearly billing." : "", f.notes.value.trim()].filter(Boolean).join(" "),
                   lang:(document.documentElement.lang || "en")};
-      fetch(PP.API.url + "/rest/v1/rpc/submit_lead", {method:"POST",
+      return fetch(PP.API.url + "/rest/v1/rpc/submit_lead", {method:"POST",
         headers:{apikey:PP.API.key, Authorization:"Bearer " + PP.API.key, "Content-Type":"application/json"},
-        body:JSON.stringify({p:lead}), keepalive:true}).catch(function(){ leadSent = ""; });
+        body:JSON.stringify({p:lead})}).then(function(r){ if(!r.ok) throw new Error("save failed"); });
     };
 
     form.addEventListener("submit", function(e){
       e.preventDefault();
       if(!check()) return;
-      saveLead();
-      window.open(PP.waLink(message()), "_blank", "noopener");
-      window.r2toast && window.r2toast(T("Opening WhatsApp. Hit send and we'll reply within a day."));
-    });
-    $("#regMail").addEventListener("click", function(){
-      if(!check()) return;
-      saveLead();
-      location.href = PP.mailLink("Club registration: " + form.club.value.trim(), message());
+      var btn = $("#regGo"), err = $("#formErr");
+      btn.disabled = true;
+      saveLead().then(function(){
+        form.hidden = true;
+        var c = PP.country(coSel.value);
+        $("#regDoneWhat").textContent = form.club.value.trim() + " · " + form.state.value + ", " + c.name;
+        $("#regDone").hidden = false;
+        $("#regDone").scrollIntoView({block:"center", behavior:"smooth"});
+      }).catch(function(){
+        btn.disabled = false;
+        err.hidden = false;
+        err.innerHTML = T("Something went wrong. Try again, or message us on WhatsApp.") + ' <a class="coral" href="' + PP.waLink(message()) + '" target="_blank" rel="noopener">WhatsApp</a>';
+      });
     });
 
     $("#waDirect").href = PP.waLink("Hi, I'd like to know more about Padel Vitals for my club.");

@@ -1324,3 +1324,7 @@ body.sb-open .sheet{max-width:560px}
 .dt-round{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
 .dt-set{width:100%}
 .dt-btns{justify-content:center}
+.regdone{display:grid;gap:14px;justify-items:start;padding:36px;border-radius:var(--r);background:var(--court);border:1px solid rgba(200,245,66,.4)}
+.regdone-ic{width:56px;height:56px;border-radius:50%;background:var(--coral);color:#0B0D0F;display:grid;place-items:center;font-size:28px;font-weight:700}
+.regdone h2{margin:0;font-family:var(--f-display);font-size:34px;text-transform:uppercase}
+.regdone p{margin:0}
