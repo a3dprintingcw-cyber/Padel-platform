@@ -164,7 +164,7 @@ window.PV = (function(){
     var staff = me.role !== "player";
 
     var q = await Promise.all([
-      sb.from("members").select("id, full_name, email, role, group_id, level, status").eq("club_id", cid).neq("status","removed").order("full_name"),
+      sb.from("members").select("id, full_name, email, role, group_id, level, status, passport_code, passport_public").eq("club_id", cid).neq("status","removed").order("full_name"),
       sb.from("groups").select("id, name, days").eq("club_id", cid).order("name"),
       sb.from("sessions").select("id, kind, starts_at, duration_min, court, note, capacity, points, coach_id, group_id").eq("club_id", cid)
         .gte("starts_at", new Date(now.getTime() - 12*36e5).toISOString()).lte("starts_at", until).order("starts_at"),
@@ -286,7 +286,8 @@ window.PV = (function(){
     R2.NOTIFS = notifs;
     R2.NOTES = notes.map(function(n){ return {body:n.body, by:nm(n.coach_id), on:dayMonth(n.created_at)}; });
     R2.GROUPS = groups;
-    R2.ME = {id:me.id, role:me.role, level:Number(me.level), club:c, attendedSeason: (std[me.id] || {}).sessions || att.length};
+    var meRow = byId[me.id] || me;
+    R2.ME = {id:me.id, role:me.role, level:Number(me.level), club:c, passport:{code:meRow.passport_code || null, on:!!meRow.passport_public}, attendedSeason: (std[me.id] || {}).sessions || att.length};
 
     /* the local store becomes a cache of the server's answer */
     var balance = ledger.reduce(function(t, p){ return t + p.amount; }, 0);
@@ -438,6 +439,28 @@ window.PV = (function(){
     report: function(memberId, from, to){
       return sb.rpc("player_report", {p_member:memberId, p_from:from, p_to:to}).then(fail);
     },
+    setPassport: function(on){ return sb.rpc("set_passport", {p_public:!!on}).then(fail); },
+    passport: function(code){ return sb.rpc("passport", {p_code:code}).then(fail); },
+    matches: async function(){
+      var since = new Date(Date.now() - 14*864e5).toISOString();
+      var r = await sb.from("matches").select("id, created_by, starts_at, level_min, level_max, note, status, score, winner, match_players(member_id, team)")
+        .eq("club_id", state.club.id).neq("status", "cancelled").gte("starts_at", since).order("starts_at");
+      return (fail(r) || []).map(function(m){
+        return {id:m.id, by:m.created_by, at:m.starts_at, min:Number(m.level_min), max:Number(m.level_max), note:m.note || "",
+                status:m.status, score:m.score || "", winner:m.winner,
+                players:(m.match_players || []).map(function(p){ return {id:p.member_id, n:nameOf(p.member_id), team:p.team}; })};
+      });
+    },
+    createMatch: function(at, min, max, note){
+      return sb.from("matches").insert({club_id:state.club.id, created_by:state.member.id, starts_at:at, level_min:min, level_max:max, note:note || null}).then(fail);
+    },
+    joinMatch: function(id){ return sb.rpc("join_match", {p_match:id}).then(fail); },
+    leaveMatch: function(id){ return sb.rpc("leave_match", {p_match:id}).then(fail); },
+    recordResult: function(id, t1, t2, score, winner){
+      return sb.rpc("record_result", {p_match:id, p_team1:t1, p_team2:t2, p_score:score, p_winner:winner}).then(fail);
+    },
+    ladder: function(){ return sb.rpc("club_ladder", {p_club:state.club.id}).then(fail); },
+    rankings: function(){ return sb.rpc("club_rankings").then(fail); },
     savePush: function(sub){
       var j = sub.toJSON();
       return sb.from("push_subs").upsert({endpoint:j.endpoint, member_id:state.member.id, club_id:state.club.id,

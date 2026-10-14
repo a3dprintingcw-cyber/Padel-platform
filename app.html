@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=28">
+<link rel="stylesheet" href="assets/styles.css?v=29">
 </head>
 <body class="app-body">
 
@@ -210,6 +210,11 @@
           <a class="btn btn-ghost btn-sm" id="myReport" href="report.html?demo=1" target="_blank" rel="noopener" data-i18n="r.mine">My monthly report</a>
         </div>
       </div>
+
+      <div class="card stack" id="passportCard">
+        <div class="card-hd"><h3 data-i18n="pp.title">Level passport</h3><span class="chip sea" data-i18n="pp.chip">Works at every club</span></div>
+        <div id="passportBody"></div>
+      </div>
     </section>
 
     <!-- ===== POINTS ===== -->
@@ -271,6 +276,11 @@
       <div class="card"><div class="standings" id="standings"></div></div>
       <div class="card-hd stack"><h3 data-i18n="q.badges">Your badges</h3></div>
       <div class="badges" id="badges"></div>
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="cr.title">Club vs club</h3><span class="chip ochre" data-i18n="cr.chip">Padel Vitals clubs</span></div>
+        <p class="muted small" data-i18n="cr.sub">Ranked by how much players improve and how often they train.</p>
+        <div class="standings" id="ranksBody"></div>
+      </div>
     </section>
 
     <!-- ===== COACHES ===== -->
@@ -280,6 +290,19 @@
         <p id="coachSub">Six coaches at Miami Padel Club. Book a private or jump to the drills they posted.</p>
       </div>
       <div class="cgrid" id="coachList"></div>
+    </section>
+
+    <!-- ===== MATCHES ===== -->
+    <section class="view" id="v-matches">
+      <div class="view-head view-head-row">
+        <div>
+          <h2 data-i18n="m.title">Matches</h2>
+          <p data-i18n="m.sub">Find players at your level. Four in and the match is on.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="matchPost" data-i18n="m.post">Post a match</button>
+      </div>
+      <div class="seg m-tabs"><button class="on" data-mtab="open" data-i18n="m.tabOpen">Open matches</button><button data-mtab="ladder" data-i18n="m.tabLadder">Ladder</button></div>
+      <div id="matchBody" class="m-body"></div>
     </section>
 
     <!-- ===== COACH: CHECK-IN ===== -->
@@ -299,7 +322,10 @@
         </div>
         <div class="roster" id="roster"></div>
       </div>
-      <button class="btn btn-primary gr-open" id="groupRate" data-i18n="gr.open">Rate the group</button>
+      <div class="gr-btns">
+        <button class="btn btn-primary gr-open" id="groupRate" data-i18n="gr.open">Rate the group</button>
+        <button class="btn btn-ghost gr-open" data-voice data-i18n="vo.open">Voice ratings</button>
+      </div>
     </section>
 
     <!-- ===== COACH: PLAYERS ===== -->
@@ -309,7 +335,8 @@
           <h2 data-i18n="t.playersTitle">Players</h2>
           <p data-i18n="t.playersSub">Tap a player to rate shots, leave a note or set their level.</p>
         </div>
-        <button class="btn btn-primary btn-sm" id="addToggle" data-i18n="t.addPlayer">Add a player</button>
+        <div class="row-btns"><button class="btn btn-ghost btn-sm" data-voice data-i18n="vo.open">Voice ratings</button>
+        <button class="btn btn-primary btn-sm" id="addToggle" data-i18n="t.addPlayer">Add a player</button></div>
       </div>
       <div class="card" id="addPlayerCard" hidden>
         <div class="field-row">
@@ -417,15 +444,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=28"></script>
-<script src="assets/store.js?v=28"></script>
-<script src="assets/i18n.js?v=28"></script>
-<script src="assets/qr.js?v=28"></script>
-<script src="assets/site.js?v=28"></script>
-<script src="assets/scan.js?v=28"></script>
-<script src="assets/figure.js?v=28"></script>
+<script src="assets/data.js?v=29"></script>
+<script src="assets/store.js?v=29"></script>
+<script src="assets/i18n.js?v=29"></script>
+<script src="assets/qr.js?v=29"></script>
+<script src="assets/site.js?v=29"></script>
+<script src="assets/scan.js?v=29"></script>
+<script src="assets/figure.js?v=29"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/backend.js?v=28"></script>
-<script src="assets/app.js?v=28"></script>
+<script src="assets/backend.js?v=29"></script>
+<script src="assets/app.js?v=29"></script>
 </body>
 </html>

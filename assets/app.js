@@ -73,6 +73,7 @@
     {id:"dash",     roles:"player", icon:'<path d="M3 10.5L11 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5H8v5H4a1 1 0 0 1-1-1z"/>'},
     {id:"schedule", roles:"player", icon:'<rect x="3" y="4.5" width="16" height="15" rx="2"/><path d="M3 9h16M7.5 2.5v4M14.5 2.5v4"/>'},
     {id:"dev",      roles:"player", icon:'<path d="M4 18V9M9.5 18V4M15 18v-6M20.5 18v-9"/>'},
+    {id:"matches",  roles:"player", icon:'<ellipse cx="9" cy="8" rx="5.5" ry="6"/><path d="M12.5 12.5l6 6M17 17l2.5 2.5"/><circle cx="18" cy="6" r="1.8"/>'},
     {id:"pts",      roles:"player", icon:'<circle cx="11" cy="11" r="8"/><path d="M11 7v8M8 11h6"/>'},
     {id:"home",     roles:"player", icon:'<path d="M4 5h16v11H4z"/><path d="M10 8.5l4.5 3-4.5 3z"/>'},
     {id:"squad",    roles:"player", icon:'<path d="M3 19v-1.5C3 15 5 13.5 7.5 13.5S12 15 12 17.5V19M19 19v-1.5c0-2-1.3-3.3-3.2-3.8"/><circle cx="7.5" cy="8" r="3"/><path d="M15 5.2a3 3 0 0 1 0 5.6"/>'},
@@ -152,6 +153,8 @@
     if(!list.some(function(n){ return n.id === id; })) id = list[0].id;
     if(id !== "bar" && typeof stopScan === "function" && scanning) stopScan();
     $$(".view").forEach(function(v){ v.classList.toggle("on", v.id === "v-" + id); });
+    if(id === "matches") loadMatches();
+    if(id === "squad") renderRanks();
     $$("[data-go]").forEach(function(x){ x.classList.toggle("active", x.dataset.go === id); });
     if(push && location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
     window.scrollTo({top:0, behavior: calm ? "auto" : "smooth"});
@@ -1242,6 +1245,10 @@
       case "drill":    return {ic:"&#9654;", t: t("n.drill"), s: d.title || "", go:"home"};
       case "goal":     return {ic:"&#9678;", t: t("n.goal"), s: d.skill + " → " + Number(d.target).toFixed(1), go:"dev"};
       case "goaldone": return {ic:"&#10003;", t: t("n.goaldone"), s: d.skill + " " + Number(d.target).toFixed(1), go:"dev"};
+      case "matchopen":   return {ic:"&#9679;", t: t("n.matchopen", {by:(d.by || "").split(" ")[0]}), s: d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) : "", go:"matches"};
+      case "matchjoin":   return {ic:"&#43;", t: t("n.matchjoin", {by:(d.by || "").split(" ")[0]}), s: (d.n || 2) + "/4", go:"matches"};
+      case "matchfull":   return {ic:"&#10003;", t: t("n.matchfull"), s: (d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) + " · " : "") + t("m.book"), go:"matches"};
+      case "matchresult": return {ic:"&#9733;", t: d.won ? t("n.matchwon") : t("n.matchlost"), s: d.score || "", go:"matches"};
       case "levelup":  return {ic:"&#9650;", t: t("n.levelup", {level: Number(d.level).toFixed(2)}), s: t("n.share"), go:"share"};
       default:         return {ic:"&#8226;", t: n.kind, s:"", go:""};
     }
@@ -1489,6 +1496,465 @@
     }
     if(e.target.closest("#installNo")){ try{ localStorage.setItem("pv.installNo", "1"); }catch(err){} paintInstall(); }
   });
+
+  /* ================================================================ voice ratings
+     The coach talks, the phone writes it down, we read names, shots and scores out of it.
+     Everything happens on the phone: no recording leaves it, only the scores the coach saves. */
+
+  function fold(s){ return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+
+  var SKILL_ALIASES = {
+    "Bandeja": ["bandeja", "bandejas"],
+    "Víbora": ["vibora", "viboras", "vivora", "bibora", "viper"],
+    "Wall exit": ["wall exit", "wall exits", "salida de pared", "salidas de pared", "salida", "back wall", "pared", "wall"],
+    "Volley": ["volley", "volleys", "volea", "voleas", "volee", "volei", "voleio"],
+    "Chiquita": ["chiquita", "chiquitas", "chikita"],
+    "Positioning": ["positioning", "posicionamiento", "position", "posicion", "posizione", "positionnement"],
+    "Serve & return": ["serve and return", "saque y resto", "serve", "serves", "service", "return", "returns", "saque", "resto", "servizio", "aufschlag"],
+    "Agility": ["agility", "footwork", "movement", "speed", "agilidad", "movimiento", "piernas", "agilita", "agilite"],
+    "Match head": ["match head", "decision making", "decisions", "mental", "head", "tactics", "tactica", "cabeza", "testa"]
+  };
+  var NUMW = {zero:0, cero:0, one:1, uno:1, una:1, um:1, un:1, une:1, eins:1, een:1, ett:1, two:2, dos:2, dois:2, due:2, deux:2, zwei:2, twee:2, tva:2,
+    three:3, tres:3, tre:3, trois:3, drei:3, drie:3, four:4, cuatro:4, quatro:4, quattro:4, quatre:4, vier:4, fyra:4,
+    five:5, cinco:5, cinque:5, cinq:5, funf:5, vijf:5, fem:5, six:6, seis:6, sei:6, sechs:6, zes:6, sex:6,
+    seven:7, siete:7, sete:7, sette:7, sept:7, sieben:7, zeven:7, sju:7, eight:8, ocho:8, oito:8, otto:8, huit:8, acht:8, atta:8,
+    nine:9, nueve:9, nove:9, neuf:9, neun:9, negen:9, nio:9, ten:10, diez:10, dez:10, dieci:10, dix:10, zehn:10, tien:10, tio:10};
+
+  /* "seven and a half" → 7.5, "siete punto cinco" → 7.5, "7,5" → 7.5 */
+  function numberize(text){
+    var s = " " + fold(text).replace(/(\d),(\d)/g, "$1.$2").replace(/[^a-z0-9.\s]/g, " ").replace(/\.(?!\d)/g, " ") + " ";
+    s = s.replace(/\b([a-z]+)\b/g, function(w){ return NUMW.hasOwnProperty(w) ? String(NUMW[w]) : w; });
+    s = s.replace(/\b(\d+)\s+(point|punto|ponto|virgule|komma|comma|coma)\s+(\d)\b/g, "$1.$3");
+    s = s.replace(/\b(\d+)\s+(and a half|y medio|y media|e meio|e mezzo|et demi|einhalb|en half|och en halv|and half)\b/g, function(_, n){ return n + ".5"; });
+    return s.replace(/\s+/g, " ").trim();
+  }
+
+  function parseVoice(text, roster){
+    var s = numberize(text), words = s.split(" ");
+    /* name keys: full name, first name, last name when nobody else has it */
+    var keys = [];
+    var firstCount = {}, lastCount = {};
+    roster.forEach(function(p){
+      var parts = fold(p.n).split(/\s+/);
+      firstCount[parts[0]] = (firstCount[parts[0]] || 0) + 1;
+      if(parts.length > 1) lastCount[parts[parts.length-1]] = (lastCount[parts[parts.length-1]] || 0) + 1;
+    });
+    roster.forEach(function(p){
+      var parts = fold(p.n).split(/\s+/);
+      keys.push({w:parts, p:p});
+      if(parts.length > 1 && firstCount[parts[0]] === 1) keys.push({w:[parts[0]], p:p});
+      if(parts.length > 1 && lastCount[parts[parts.length-1]] === 1) keys.push({w:[parts[parts.length-1]], p:p});
+    });
+    keys.sort(function(a,b){ return b.w.length - a.w.length; });
+    var skillKeys = [];
+    Object.keys(SKILL_ALIASES).forEach(function(k){ SKILL_ALIASES[k].forEach(function(a){ skillKeys.push({w:a.split(" "), k:k}); }); });
+    skillKeys.sort(function(a,b){ return b.w.length - a.w.length; });
+    function at(i, list){
+      for(var j = 0; j < list.length; j++){
+        var w = list[j].w, ok = true;
+        for(var x = 0; x < w.length; x++){ if(words[i+x] !== w[x]){ ok = false; break; } }
+        if(ok) return list[j];
+      }
+      return null;
+    }
+    /* walk the words once: player switches, shots set the current shot, numbers score it */
+    var out = [], cur = null, skill = null, pending = [], unmatched = [], i = 0, noteWords = {};
+    while(i < words.length){
+      var nk = at(i, keys);
+      if(nk){ cur = nk.p; i += nk.w.length; continue; }
+      var sk = at(i, skillKeys);
+      if(sk){ skill = sk.k; i += sk.w.length; continue; }
+      var w = words[i];
+      if(/^\d+(\.\d+)?$/.test(w)){
+        var v = parseFloat(w);
+        if(v >= 0 && v <= 10){
+          if(cur) out.push({p:cur, skill:skill, score:Math.round(v*10)/10});
+          else unmatched.push(w);
+        }
+        i++; continue;
+      }
+      if(cur){ (noteWords[cur.id] = noteWords[cur.id] || []).push(w); }
+      i++;
+    }
+    /* same player + same shot twice: the last one said wins */
+    var seen = {}, rows = [];
+    out.forEach(function(r){ var k = r.p.id + "|" + r.skill; if(seen[k] != null) rows[seen[k]] = r; else { seen[k] = rows.length; rows.push(r); } });
+    return {rows:rows, notes:noteWords};
+  }
+
+  /* the coach's own words for a player, cut from the original text, for the note */
+  function noteFor(text, p){
+    var f = fold(text), first = fold(p.n).split(/\s+/)[0];
+    var idx = f.indexOf(first);
+    if(idx < 0) return "";
+    var rest = text.slice(idx);
+    var others = D.ROSTER.filter(function(x){ return x.id !== p.id; }).map(function(x){ return fold(x.n).split(/\s+/)[0]; });
+    var cut = rest.length, fr = fold(rest);
+    others.forEach(function(o){ var j = fr.indexOf(o, first.length); if(j > 0 && j < cut) cut = j; });
+    var seg = rest.slice(0, cut);
+    /* keep only the coaching words: drop the name and every clause that is just a shot and a score */
+    var aliases = [];
+    Object.keys(SKILL_ALIASES).forEach(function(k){ aliases = aliases.concat(SKILL_ALIASES[k]); });
+    var clauses = seg.split(/[,;.!?]+|\s+(?:and|y|e|et|und|en|och)\s+(?=\S+\s+\d)/i).map(function(c){ return c.trim(); }).filter(Boolean);
+    var keep = clauses.filter(function(c){
+      var n = " " + numberize(c) + " ";
+      if(/\s\d+(\.\d+)?\s/.test(n)) return false;
+      return !aliases.some(function(a){ return n.indexOf(" " + a + " ") !== -1; }) || n.split(" ").filter(Boolean).length > 4;
+    }).map(function(c){ return c.replace(new RegExp("^" + p.n.split(/\s+/)[0] + "\\b", "i"), "").trim(); }).filter(function(c){ return c.split(/\s+/).length >= 2; });
+    var txt = keep.join(". ");
+    return txt ? txt.charAt(0).toUpperCase() + txt.slice(1) : "";
+  }
+
+  var voiceRows = [], voiceNotes = {}, voiceText = "", rec = null, listening = false;
+
+  function voiceHtml(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var byPlayer = {};
+    voiceRows.forEach(function(r, i){ (byPlayer[r.p.id] = byPlayer[r.p.id] || {p:r.p, rows:[]}).rows.push({r:r, i:i}); });
+    var groups = Object.keys(byPlayer).map(function(k){ return byPlayer[k]; });
+    var missing = voiceRows.some(function(r){ return !r.skill; });
+    return '<div class="voice">'+
+      '<div class="eyebrow">'+t("vo.eyebrow")+'</div><h3>'+t("vo.title")+'</h3>'+
+      '<p class="muted small">'+t("vo.hint")+'</p>'+
+      (SR ? '<button class="vo-mic'+(listening ? " on" : "")+'" id="voMic" aria-label="'+esc(t("vo.talk"))+'">'+
+        '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'+
+        '<span>'+(listening ? t("vo.stop") : t("vo.talk"))+'</span></button>' : '')+
+      '<textarea id="voText" rows="4" placeholder="'+esc(t("vo.ph"))+'">'+esc(voiceText)+'</textarea>'+
+      '<button class="btn btn-ghost btn-sm" id="voRead">'+t("vo.read")+'</button>'+
+      (groups.length ? '<div class="vo-list">'+groups.map(function(g){
+        var note = voiceNotes[g.p.id];
+        return '<div class="vo-p"><b>'+esc(g.p.n)+'</b>'+g.rows.map(function(x){
+          return '<div class="vo-row"><select data-vosk="'+x.i+'">'+(x.r.skill ? '' : '<option value="">'+t("vo.pick")+'</option>')+
+            D.SKILLS.map(function(s){ return '<option'+(s.n === x.r.skill ? " selected" : "")+'>'+esc(s.n)+'</option>'; }).join("")+'</select>'+
+            '<input type="number" min="0" max="10" step="0.1" value="'+x.r.score.toFixed(1)+'" data-vosc="'+x.i+'" aria-label="Score">'+
+            '<button class="gr-skip" data-vodel="'+x.i+'" aria-label="Remove">&times;</button></div>';
+        }).join("")+
+        (note != null ? '<label class="vo-note"><input type="checkbox" data-vonote="'+g.p.id+'"'+(note.on ? " checked" : "")+'> '+t("vo.asNote")+'<span>'+esc(note.text)+'</span></label>' : '')+
+        '</div>';
+      }).join("")+'</div>'+
+      '<button class="btn btn-primary vo-save" id="voSave"'+(missing ? " disabled" : "")+'>'+t("vo.save", {n:voiceRows.length})+'</button>'
+      : (voiceText ? '<p class="muted small">'+t("vo.none")+'</p>' : ''))+
+    '</div>';
+  }
+  function repaintVoice(){ var y = $(".sheet") ? $(".sheet").scrollTop : 0; $("#modalBody").innerHTML = voiceHtml(); if($(".sheet")) $(".sheet").scrollTop = y; }
+
+  function readVoice(){
+    voiceText = ($("#voText").value || "").trim();
+    var res = parseVoice(voiceText, D.ROSTER);
+    voiceRows = res.rows;
+    voiceNotes = {};
+    var ids = {}; voiceRows.forEach(function(r){ ids[r.p.id] = r.p; });
+    Object.keys(ids).forEach(function(id){
+      var txt = noteFor(voiceText, ids[id]);
+      if(txt) voiceNotes[id] = {text:txt, on:true};
+    });
+    repaintVoice();
+  }
+
+  function openVoice(){ voiceRows = []; voiceNotes = {}; voiceText = ""; modal(voiceHtml()); }
+
+  function stopRec(){ listening = false; if(rec){ try{ rec.stop(); }catch(e){} } }
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("[data-voice]")){ openVoice(); return; }
+    if(e.target.closest("#voMic")){
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return;
+      if(listening){ stopRec(); setTimeout(readVoice, 300); return; }
+      voiceText = ($("#voText").value || "").trim();
+      var base = voiceText ? voiceText + " " : "";
+      rec = new SR();
+      rec.lang = {en:"en-US", es:"es-ES", pt:"pt-PT", it:"it-IT", fr:"fr-FR", de:"de-DE", nl:"nl-NL", sv:"sv-SE"}[I.current] || "en-US";
+      rec.continuous = true; rec.interimResults = true;
+      rec.onresult = function(ev){
+        var fin = "", tmp = "";
+        for(var k = 0; k < ev.results.length; k++){ (ev.results[k].isFinal ? (fin += ev.results[k][0].transcript + " ") : (tmp += ev.results[k][0].transcript)); }
+        var box = $("#voText"); if(box) box.value = (base + fin + tmp).trim();
+      };
+      rec.onerror = function(ev){ listening = false; if(ev.error === "not-allowed") window.r2toast(t("vo.micNo")); var m = $("#voMic"); if(m) repaintVoice(); };
+      rec.onend = function(){ if(listening){ try{ rec.start(); }catch(err){ listening = false; } } };
+      try{ rec.start(); listening = true; haptic(); }catch(err){ listening = false; }
+      var mic = $("#voMic"); if(mic){ mic.classList.toggle("on", listening); mic.querySelector("span").textContent = listening ? t("vo.stop") : t("vo.talk"); }
+      return;
+    }
+    if(e.target.closest("#voRead")){ stopRec(); readVoice(); return; }
+    var d = e.target.closest("[data-vodel]");
+    if(d){ voiceRows.splice(+d.dataset.vodel, 1); repaintVoice(); return; }
+    if(e.target.closest("#voSave")){
+      var rows = voiceRows.filter(function(r){ return r.skill; }).map(function(r){ return {player:r.p.id, skill:r.skill, score:r.score}; });
+      var notes = Object.keys(voiceNotes).filter(function(id){ return voiceNotes[id].on; }).map(function(id){ return {id:id, text:voiceNotes[id].text}; });
+      if(!rows.length) return;
+      haptic(24);
+      var msg = t("vo.saved", {n:rows.length});
+      if(!REAL){
+        rows.forEach(function(r){
+          demoRatings[r.player] = demoRatings[r.player] || {};
+          demoRatings[r.player][r.skill] = {n:r.skill, v:r.score, d:0, on:t("t.today"), unrated:false};
+          var p = D.ROSTER.filter(function(x){ return x.id === r.player; })[0];
+          if(p && p.me){ S.setSkill(r.skill, r.score); applyEdits(); renderSkills(); }
+        });
+        closeModal(); window.r2toast(msg); return;
+      }
+      $("#voSave").disabled = true;
+      PVB.act.rateMany(rows).then(function(){
+        return Promise.all(notes.map(function(n){ return PVB.act.note(n.id, n.text); }));
+      }).then(function(){ closeModal(); window.r2toast(msg); }).catch(function(err){ oops(err); var b = $("#voSave"); if(b) b.disabled = false; });
+    }
+  });
+  document.addEventListener("change", function(e){
+    var a = e.target.closest("[data-vosk]");
+    if(a){ voiceRows[+a.dataset.vosk].skill = a.value || null; repaintVoice(); return; }
+    var n = e.target.closest("[data-vonote]");
+    if(n && voiceNotes[n.dataset.vonote]) voiceNotes[n.dataset.vonote].on = n.checked;
+  });
+  document.addEventListener("input", function(e){
+    var c = e.target.closest("[data-vosc]");
+    if(c){ var v = parseFloat(c.value); if(!isNaN(v)) voiceRows[+c.dataset.vosc].score = Math.max(0, Math.min(10, Math.round(v*10)/10)); }
+    if(e.target.id === "voText") voiceText = e.target.value;
+  });
+
+  /* ================================================================ level passport */
+
+  function passportUrl(code){ return location.origin + location.pathname.replace(/[^/]*$/, "") + "passport.html?c=" + encodeURIComponent(code); }
+
+  function renderPassport(){
+    var el = $("#passportBody");
+    if(!el) return;
+    var pp = REAL && D.ME ? D.ME.passport : (D.__pp = D.__pp || {code:null, on:false});
+    if(!pp || !pp.on){
+      el.innerHTML = '<p class="muted small">'+t("pp.off")+'</p><button class="btn btn-primary btn-sm" id="ppOn">'+t("pp.turnOn")+'</button>';
+      return;
+    }
+    var url = REAL ? passportUrl(pp.code) : passportUrl("DEMO").replace("c=DEMO", "demo=1");
+    var qr = window.r2qr ? window.r2qr.svg(url, {fg:"#0B0D0F", bg:"#FFFFFF"}) : "";
+    el.innerHTML = '<div class="pp-row"><div class="pp-qr">'+qr+'</div><div class="pp-info">'+
+      '<div class="eyebrow">'+t("pp.code")+'</div><b class="pp-code">'+esc(pp.code || "DEMO")+'</b>'+
+      '<p class="muted small">'+t("pp.on")+'</p>'+
+      '<div class="lv-actions"><button class="btn btn-primary btn-sm" data-ppshare="'+esc(url)+'">'+t("pp.share")+'</button>'+
+      '<a class="btn btn-ghost btn-sm" href="'+esc(url)+'" target="_blank" rel="noopener">'+t("pp.view")+'</a>'+
+      '<button class="link-btn" id="ppOff">'+t("pp.turnOff")+'</button></div></div></div>';
+  }
+
+  document.addEventListener("click", function(e){
+    var on = e.target.closest("#ppOn"), off = e.target.closest("#ppOff");
+    if(on || off){
+      var want = !!on;
+      if(!REAL){ D.__pp = {code:"DEMO", on:want}; renderPassport(); return; }
+      PVB.act.setPassport(want).then(function(code){
+        D.ME.passport = {code:code, on:want}; renderPassport();
+        window.r2toast(want ? t("pp.isOn") : t("pp.isOff"));
+      }).catch(oops);
+      return;
+    }
+    var sh = e.target.closest("[data-ppshare]");
+    if(sh) share(t("pp.title"), t("pp.shareText"), sh.dataset.ppshare);
+  });
+
+  /* ================================================================ matches and ladder */
+
+  var matchTab = "open", MATCHES = [], LADDER = [];
+
+  function myId(){ return REAL ? (D.ME && D.ME.id) : "p1"; }
+  function myLevel(){ return REAL ? Number(D.ME && D.ME.level) || 0 : 3.25; }
+  function rosterName(id){ var p = D.ROSTER.filter(function(x){ return x.id === id; })[0]; return p ? p.n : ""; }
+
+  function demoMatches(){
+    if(D.__matches) return D.__matches;
+    var day = function(d, h){ var x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, 0, 0, 0); return x.toISOString(); };
+    var P = function(id, team){ return {id:id, n:rosterName(id), team:team || null}; };
+    D.__matches = [
+      {id:"m1", by:"p2", at:day(1, 19), min:3.0, max:3.75, note:"Court 3, bring balls", status:"open", score:"", winner:null, players:[P("p2"), P("p3")]},
+      {id:"m2", by:"p1", at:day(3, 10), min:3.0, max:3.5, note:"", status:"full", score:"", winner:null, players:[P("p1"), P("p4"), P("p5"), P("p6")]},
+      {id:"m4", by:"p1", at:day(-1, 19), min:3.0, max:3.75, note:"", status:"full", score:"", winner:null, players:[P("p1"), P("p7"), P("p2"), P("p8")]},
+      {id:"m3", by:"p4", at:day(-4, 18), min:3.0, max:3.75, note:"", status:"played", score:"6-4 3-6 7-5", winner:1, players:[P("p1",1), P("p4",1), P("p2",2), P("p3",2)]}
+    ];
+    return D.__matches;
+  }
+  function demoLadder(){
+    return D.ROSTER.map(function(p){ var r = seeded("lad" + p.id); var pl = 3 + r % 8; return {member_id:p.id, full_name:p.n, level:p.rating, played:pl, wins:Math.min(pl, (r >> 3) % (pl + 1))}; });
+  }
+
+  function loadMatches(){
+    if(role !== "player") return;
+    if(!REAL){ MATCHES = demoMatches(); LADDER = demoLadder(); renderMatches(); return; }
+    Promise.all([PVB.act.matches(), PVB.act.ladder()]).then(function(r){ MATCHES = r[0] || []; LADDER = r[1] || []; renderMatches(); }).catch(function(){});
+  }
+
+  function matchCard(m){
+    var me = myId(), mine = m.players.some(function(p){ return p.id === me; });
+    var d = new Date(m.at), past = d < new Date();
+    var slots = [0,1,2,3].map(function(i){
+      var p = m.players[i];
+      return p ? '<span class="ms-p'+(p.id === me ? " me" : "")+(p.team ? " t" + p.team : "")+'"><i>'+esc(initialsOf(p.n))+'</i>'+esc(p.n.split(" ")[0])+'</span>'
+               : '<span class="ms-p empty"><i>+</i>'+t("m.open")+'</span>';
+    }).join("");
+    var state = m.status === "played" ? '<span class="chip">'+esc(m.score)+'</span>' :
+                m.status === "full" ? '<span class="chip sea">'+t("m.on")+'</span>' :
+                '<span class="chip ochre">'+m.players.length+'/4</span>';
+    var act = "";
+    if(m.status === "played"){
+      var w = m.players.filter(function(p){ return p.team === m.winner; }).map(function(p){ return p.n.split(" ")[0]; }).join(" & ");
+      act = '<p class="muted small">'+t("m.won", {who:esc(w)})+'</p>';
+    } else if(past && mine && m.players.length === 4){
+      act = '<button class="btn btn-primary btn-sm" data-mresult="'+m.id+'">'+t("m.addResult")+'</button>';
+    } else if(!past && mine){
+      act = (m.status === "full" ? '<p class="small coral">'+t("m.book")+'</p>' : '')+'<button class="btn btn-ghost btn-sm" data-mleave="'+m.id+'">'+t("m.leave")+'</button>';
+    } else if(!past && m.status === "open"){
+      var lv = myLevel(), fits = lv >= m.min - 0.001 && lv <= m.max + 0.001;
+      act = '<button class="btn btn-primary btn-sm" data-mjoin="'+m.id+'">'+t("m.join")+'</button>'+(fits ? '' : '<small class="muted">'+t("m.outside")+'</small>');
+    }
+    return '<article class="mcard'+(mine ? " mine" : "")+(m.status === "played" ? " played" : "")+'">'+
+      '<div class="mc-hd"><div><b>'+fmtDay(d)+' · '+fmtTime(d)+'</b><small>'+t("t.level")+' '+m.min.toFixed(2)+'–'+m.max.toFixed(2)+(m.note ? ' · '+esc(m.note) : '')+'</small></div>'+state+'</div>'+
+      '<div class="mc-slots">'+slots+'</div><div class="mc-act">'+act+'</div></article>';
+  }
+  function initialsOf(n){ return String(n || "?").split(/\s+/).map(function(w){ return w.charAt(0); }).join("").slice(0,2).toUpperCase(); }
+
+  function renderMatches(){
+    var el = $("#matchBody");
+    if(!el) return;
+    $$("[data-mtab]").forEach(function(b){ b.classList.toggle("on", b.dataset.mtab === matchTab); });
+    $("#matchPost").hidden = matchTab !== "open";
+    if(matchTab === "ladder"){
+      var rows = LADDER.slice().map(function(r){ return Object.assign({}, r, {pct: r.played ? r.wins / r.played : 0}); })
+        .sort(function(a,b){ return b.wins - a.wins || b.pct - a.pct || a.played - b.played; });
+      el.innerHTML = rows.length ? '<div class="card"><table class="ladder"><thead><tr><th>#</th><th>'+t("c.player")+'</th><th>'+t("m.p")+'</th><th>'+t("m.w")+'</th><th>%</th></tr></thead><tbody>'+
+        rows.map(function(r, i){
+          return '<tr class="'+(r.member_id === myId() ? "me" : "")+'"><td>'+(i+1)+'</td><td><b>'+esc(r.full_name)+'</b><small>'+(Number(r.level)||0).toFixed(2)+'</small></td>'+
+            '<td>'+r.played+'</td><td>'+r.wins+'</td><td>'+Math.round(r.pct*100)+'</td></tr>';
+        }).join("")+'</tbody></table><p class="muted small">'+t("m.ladderHint")+'</p></div>'
+        : '<p class="empty">'+t("m.noLadder")+'</p>';
+      return;
+    }
+    var now = Date.now() - 3*36e5;
+    var upcoming = MATCHES.filter(function(m){ return new Date(m.at) >= now && m.status !== "played"; });
+    var recent = MATCHES.filter(function(m){ return !(new Date(m.at) >= now && m.status !== "played"); }).reverse();
+    el.innerHTML = (upcoming.length ? upcoming.map(matchCard).join("") : '<p class="empty">'+t("m.none")+'</p>')+
+      (recent.length ? '<div class="eyebrow m-eb">'+t("m.recent")+'</div>' + recent.map(matchCard).join("") : '');
+  }
+
+  function postForm(){
+    var tm = new Date(); tm.setDate(tm.getDate() + 1);
+    var lv = myLevel();
+    modal('<div class="mpost"><h3>'+t("m.post")+'</h3>'+
+      '<div class="field-row"><label class="field"><span>'+t("m.date")+'</span><input type="date" id="mpDate" value="'+tm.toISOString().slice(0,10)+'"></label>'+
+      '<label class="field"><span>'+t("m.time")+'</span><input type="time" id="mpTime" value="19:00"></label></div>'+
+      '<div class="field-row"><label class="field"><span>'+t("m.min")+'</span><input type="number" id="mpMin" step="0.25" min="0" max="7" value="'+Math.max(0, lv - 0.5).toFixed(2)+'"></label>'+
+      '<label class="field"><span>'+t("m.max")+'</span><input type="number" id="mpMax" step="0.25" min="0" max="7" value="'+Math.min(7, lv + 0.5).toFixed(2)+'"></label></div>'+
+      '<label class="field"><span>'+t("m.note")+'</span><input type="text" id="mpNote" maxlength="80"></label>'+
+      '<p class="muted small">'+t("m.postHint")+'</p>'+
+      '<button class="btn btn-primary" id="mpGo">'+t("m.postGo")+'</button></div>');
+  }
+
+  function resultForm(id){
+    var m = MATCHES.filter(function(x){ return x.id === id; })[0];
+    if(!m) return;
+    var me = myId();
+    modal('<div class="mres"><h3>'+t("m.addResult")+'</h3><p class="muted small">'+t("m.partner")+'</p>'+
+      '<div class="mr-pick">'+m.players.filter(function(p){ return p.id !== me; }).map(function(p){
+        return '<label class="mr-opt"><input type="radio" name="mrPartner" value="'+p.id+'"> '+esc(p.n)+'</label>';
+      }).join("")+'</div>'+
+      '<label class="field"><span>'+t("m.score")+'</span><input type="text" id="mrScore" placeholder="6-4 6-3" maxlength="40"></label>'+
+      '<div class="mr-pick"><label class="mr-opt"><input type="radio" name="mrWin" value="1"> '+t("m.weWon")+'</label>'+
+      '<label class="mr-opt"><input type="radio" name="mrWin" value="2"> '+t("m.theyWon")+'</label></div>'+
+      '<button class="btn btn-primary" id="mrGo" data-mid="'+id+'">'+t("c.save")+'</button></div>');
+  }
+
+  document.addEventListener("click", function(e){
+    var tb = e.target.closest("[data-mtab]");
+    if(tb){ matchTab = tb.dataset.mtab; renderMatches(); return; }
+    if(e.target.closest("#matchPost")){ postForm(); return; }
+    if(e.target.closest("#mpGo")){
+      var date = $("#mpDate").value, time = $("#mpTime").value || "19:00";
+      var min = parseFloat($("#mpMin").value), max = parseFloat($("#mpMax").value), note = ($("#mpNote").value || "").trim();
+      if(!date){ $("#mpDate").focus(); return; }
+      if(isNaN(min) || isNaN(max) || min > max){ $("#mpMax").focus(); return; }
+      var at = new Date(date + "T" + time);
+      if(at < new Date()){ window.r2toast(t("m.future")); return; }
+      if(!REAL){
+        demoMatches().push({id:"m" + Date.now(), by:"p1", at:at.toISOString(), min:min, max:max, note:note, status:"open", score:"", winner:null, players:[{id:"p1", n:rosterName("p1"), team:null}]});
+        D.__matches.sort(function(a,b){ return new Date(a.at) - new Date(b.at); });
+        closeModal(); renderMatches(); window.r2toast(t("m.posted")); return;
+      }
+      $("#mpGo").disabled = true;
+      PVB.act.createMatch(at.toISOString(), min, max, note).then(function(){ closeModal(); window.r2toast(t("m.posted")); loadMatches(); })
+        .catch(function(err){ oops(err); var b = $("#mpGo"); if(b) b.disabled = false; });
+      return;
+    }
+    var j = e.target.closest("[data-mjoin]");
+    if(j){
+      haptic();
+      if(!REAL){
+        var m = demoMatches().filter(function(x){ return x.id === j.dataset.mjoin; })[0];
+        m.players.push({id:"p1", n:rosterName("p1"), team:null});
+        if(m.players.length >= 4){ m.status = "full"; window.r2toast(t("m.fullNow")); } else window.r2toast(t("m.joined"));
+        renderMatches(); return;
+      }
+      PVB.act.joinMatch(j.dataset.mjoin).then(function(r){ window.r2toast(r === "full" ? t("m.fullNow") : t("m.joined")); loadMatches(); }).catch(oops);
+      return;
+    }
+    var l = e.target.closest("[data-mleave]");
+    if(l){
+      if(!window.confirm(t("m.leaveQ"))) return;
+      if(!REAL){
+        var m2 = demoMatches().filter(function(x){ return x.id === l.dataset.mleave; })[0];
+        m2.players = m2.players.filter(function(p){ return p.id !== "p1"; });
+        m2.status = m2.players.length ? "open" : "cancelled";
+        D.__matches = D.__matches.filter(function(x){ return x.status !== "cancelled"; });
+        renderMatches(); return;
+      }
+      PVB.act.leaveMatch(l.dataset.mleave).then(loadMatches).catch(oops);
+      return;
+    }
+    var r = e.target.closest("[data-mresult]");
+    if(r){ resultForm(r.dataset.mresult); return; }
+    if(e.target.closest("#mrGo")){
+      var id = e.target.closest("#mrGo").dataset.mid;
+      var mt = MATCHES.filter(function(x){ return x.id === id; })[0];
+      var partner = (document.querySelector('input[name="mrPartner"]:checked') || {}).value;
+      var win = (document.querySelector('input[name="mrWin"]:checked') || {}).value;
+      var score = ($("#mrScore").value || "").trim();
+      if(!partner || !win){ window.r2toast(t("m.need")); return; }
+      var me = myId();
+      var t1 = [me, partner], t2 = mt.players.map(function(p){ return p.id; }).filter(function(x){ return t1.indexOf(x) === -1; });
+      var winner = win === "1" ? 1 : 2;
+      if(!REAL){
+        mt.players.forEach(function(p){ p.team = t1.indexOf(p.id) !== -1 ? 1 : 2; });
+        mt.status = "played"; mt.score = score; mt.winner = winner;
+        closeModal(); renderMatches(); window.r2toast(t("m.saved")); return;
+      }
+      PVB.act.recordResult(id, t1, t2, score, winner).then(function(){ closeModal(); window.r2toast(t("m.saved")); loadMatches(); }).catch(oops);
+    }
+  });
+
+  /* ================================================================ club vs club */
+
+  var RANKS = null;
+  function demoRanks(){
+    return [
+      {club_id:"me", name:"Miami Padel Club", city:"Miami", country:"US", players:46, avg_level:3.12, sessions_pp:6.4, gain_90:0.31, ratings_30:212},
+      {club_id:"d2", name:"Sample club", city:"Madrid", country:"ES", players:88, avg_level:3.48, sessions_pp:5.1, gain_90:0.22, ratings_30:301},
+      {club_id:"d3", name:"Sample club", city:"Lisbon", country:"PT", players:34, avg_level:2.91, sessions_pp:7.0, gain_90:0.27, ratings_30:96},
+      {club_id:"d4", name:"Sample club", city:"Milan", country:"IT", players:61, avg_level:3.30, sessions_pp:4.2, gain_90:0.18, ratings_30:150}
+    ];
+  }
+  function rankScore(c){ return (Number(c.gain_90) || 0) * 10 + (Number(c.sessions_pp) || 0); }
+  function renderRanks(){
+    var el = $("#ranksBody");
+    if(!el) return;
+    if(RANKS === null){
+      RANKS = [];
+      if(!REAL){ RANKS = demoRanks(); }
+      else { PVB.act.rankings().then(function(r){ RANKS = r || []; renderRanks(); }).catch(function(){}); }
+    }
+    var mine = REAL && D.ME ? D.ME.club.id : "me";
+    var list = RANKS.slice().sort(function(a,b){ return rankScore(b) - rankScore(a); });
+    el.innerHTML = list.length ? list.map(function(c, i){
+      return '<div class="rank'+(c.club_id === mine ? " me" : "")+'"><span class="pos">'+(i+1)+'</span>'+
+        '<span class="who">'+esc(c.name)+'<small>'+esc([c.city, c.country].filter(Boolean).join(", "))+' · '+c.players+' '+t("cr.players")+'</small></span>'+
+        '<span class="cr-stat"><b>'+(c.gain_90 >= 0 ? "+" : "")+Number(c.gain_90).toFixed(2)+'</b><small>'+t("cr.gain")+'</small></span>'+
+        '<span class="cr-stat"><b>'+Number(c.sessions_pp).toFixed(1)+'</b><small>'+t("cr.sess")+'</small></span></div>';
+    }).join("") + (REAL ? '' : '<p class="muted small">'+t("cr.demo")+'</p>') : '<p class="empty">'+t("cr.none")+'</p>';
+  }
 
   /* ================================================================ monthly report link */
   function reportUrl(memberId){
@@ -1758,6 +2224,9 @@
     renderCSchedule();
     renderCDrills();
     renderGoals();
+    renderPassport();
+    renderMatches();
+    if($("#v-squad") && $("#v-squad").classList.contains("on")) renderRanks();
     paintBell();
     paintInstall();
     renderLive();

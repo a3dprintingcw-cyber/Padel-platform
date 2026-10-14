@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Level passport | Padel Vitals</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0D0F">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{--ink:#0B0D0F;--court:#171A1E;--line:rgba(255,255,255,.09);--text:#F2F4F5;--muted:#9AA3AB;--volt:#C8F542;--sea:#35C6D6}
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 80% 0%, #24300C 0%, var(--ink) 50%);color:var(--text);font-family:"Instrument Sans",system-ui,sans-serif;padding:24px 16px 60px}
+  .wrap{max-width:560px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:8px;font-family:Anton,Impact,sans-serif;font-size:20px;text-transform:uppercase;color:var(--text);text-decoration:none}
+  .brand svg{width:14px;height:21px}
+  .brand .v{color:var(--volt)}
+  .card{margin-top:22px;background:var(--court);border:1px solid var(--line);border-radius:22px;padding:26px;position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:var(--volt)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:30px;margin:8px 0 2px}
+  .clubs{color:var(--muted);font-size:14px}
+  .lvl{display:flex;align-items:flex-end;gap:14px;margin:22px 0 6px}
+  .lvl b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:96px;line-height:.9;color:var(--volt)}
+  .lvl span{color:var(--muted);font-size:14px;padding-bottom:10px}
+  .verified{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sea);border:1px solid rgba(53,198,214,.3);border-radius:100px;padding:4px 10px;margin-top:6px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+  .stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .stat b{display:block;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:28px}
+  .stat small{color:var(--muted);font-size:12px}
+  .sk{display:grid;grid-template-columns:120px 1fr 36px;gap:12px;align-items:center;padding:7px 0;font-size:14px}
+  .tr{height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+  .tr i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--sea),var(--volt))}
+  .sk b{text-align:right;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:17px}
+  .foot{margin-top:22px;color:var(--muted);font-size:12.5px;line-height:1.5}
+  .foot a{color:var(--volt)}
+  .msg{margin-top:60px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="brand" href="index.html"><svg viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="42" rx="29" ry="35" fill="none" stroke="#F2F4F5" stroke-width="8"/><path d="M24 71 L35 90 M56 71 L45 90" fill="none" stroke="#F2F4F5" stroke-width="8" stroke-linecap="round"/><rect x="32" y="89" width="16" height="27" rx="3" fill="#F2F4F5"/><polyline points="2,44 21,44 26,33 33,60 40,20 46,52 50,44 78,44" fill="none" stroke="#C8F542" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/></svg><span><span class="v">Padel</span> Vitals</span></a>
+  <div id="out"><p class="msg">Loading…</p></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/data.js?v=29"></script>
+<script src="assets/backend.js?v=29"></script>
+<script>
+(function(){
+  "use strict";
+  var qs = new URLSearchParams(location.search), code = (qs.get("c") || "").trim(), demo = qs.get("demo") === "1";
+  var lang = "en"; try{ lang = localStorage.getItem("pv.lang") || (navigator.language || "en").slice(0,2); }catch(e){}
+  var loc = {en:"en-US", es:"es-ES", pt:"pt-PT", it:"it-IT", fr:"fr-FR", de:"de-DE", nl:"nl-NL", sv:"sv-SE"}[lang] || "en-US";
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function out(h){ document.getElementById("out").innerHTML = h; }
+  function render(p){
+    if(!p){ out('<p class="msg">This passport is private or does not exist.</p>'); return; }
+    var lv = p.levels || [], first = lv.length ? Number(lv[0].level) : null, level = Number(p.level) || 0;
+    var since = p.since ? new Date(p.since).toLocaleDateString(loc, {month:"short", year:"numeric"}) : "";
+    var skills = (p.skills || []).slice().sort(function(a,b){ return b.score - a.score; });
+    var clubs = (p.clubs || []).map(function(c){ return [c.name, c.city].filter(Boolean).join(", "); }).join(" · ");
+    out('<div class="card"><div class="eyebrow">Level passport</div>'+
+      '<h1>'+esc(p.name || "Player")+'</h1><div class="clubs">'+esc(clubs)+'</div>'+
+      '<div class="lvl"><b>'+level.toFixed(2)+'</b><span>Padel level'+(first != null && first < level ? '<br>up from '+first.toFixed(2) : '')+'</span></div>'+
+      '<span class="verified">&#10003; Set by club coaches</span>'+
+      '<div class="stats"><div class="stat"><b>'+(p.sessions90 || 0)+'</b><small>Training sessions, last 90 days</small></div>'+
+      '<div class="stat"><b>'+esc(since || "–")+'</b><small>Training with Padel Vitals since</small></div></div>'+
+      (skills.length ? '<div class="eyebrow" style="margin-bottom:6px">Latest coach ratings</div>' + skills.map(function(s){
+        return '<div class="sk"><span>'+esc(s.skill)+'</span><span class="tr"><i style="width:'+(Number(s.score)*10)+'%"></i></span><b>'+Number(s.score).toFixed(1)+'</b></div>';
+      }).join("") : '')+
+      '</div><p class="foot">Levels and ratings on Padel Vitals are set by the player\'s coaches. Clubs: <a href="index.html">see how it works</a>.</p>');
+    document.title = (p.name || "Player") + " · Level " + level.toFixed(2) + " | Padel Vitals";
+  }
+  if(demo){
+    var D = window.R2;
+    render({name:D.PLAYER.name, level:3.25, since:"2025-11-01", clubs:[{name:"Miami Padel Club", city:"Miami"}], sessions90:24,
+            skills:D.SKILLS.map(function(s){ return {skill:s.n, score:s.v}; }), levels:[{level:2.75},{level:3.0},{level:3.25}]});
+    return;
+  }
+  if(!/^[A-Za-z0-9]{6,12}$/.test(code)){ render(null); return; }
+  if(!window.PV || !window.PV.ready){ out('<p class="msg">Offline. Try again with a connection.</p>'); return; }
+  window.PV.act.passport(code).then(render).catch(function(){ render(null); });
+})();
+</script>
+</body>
+</html>
