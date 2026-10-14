@@ -15,13 +15,13 @@ window.PP = (function(){
   var PLANS = [
     {id:"starter",  name:"Starter",  max:50,   price:599,  color:"#35C6D6",
      who:"Up to 50 training players",
-     perks:[["Player accounts with personal stats"],["Coach ratings on 9 padel shots"],["Level system set by your coaches"],["Training schedule and attendance"],["Coach notes on every player"],["Home drill library"],["2 coach accounts"],["8 languages"],["Email support"]]},
+     perks:[["Player accounts with personal stats"],["Coach ratings on 9 padel shots"],["Level system set by your coaches"],["Training schedule and attendance"],["Coach notes on every player"],["Goals per player with progress bars"],["Progress chart for every shot"],["Rate a whole group in one minute"],["Home drill library"],["2 coach accounts"],["8 languages"],["Email support"]]},
     {id:"club",     name:"Club",     max:150,  price:999,  color:"#C8F542", pick:true, badge:"Most clubs",
      who:"51 to 150 training players",
-     perks:[["Everything in Starter"],["Points and rewards at your bar or shop"],["Group leaderboards and badges"],["Your logo and club colors"],["Session reminders on WhatsApp", true],["Monthly progress report for every player", true],["6 coach accounts"],["WhatsApp support"]]},
+     perks:[["Everything in Starter"],["Points and rewards at your bar or shop"],["Group leaderboards and badges"],["Your logo and club colors"],["Session reminders on WhatsApp", true],["Monthly progress report for every player"],["Level-up cards players share on Instagram"],["6 coach accounts"],["WhatsApp support"]]},
     {id:"academy",  name:"Academy",  max:300,  price:1699, color:"#FF6B4A",
      who:"151 to 300 training players",
-     perks:[["Everything in Club"],["Unlimited coaches"],["Video drills from your coaches", true],["Shot video review: coaches mark up a player's clip", true],["Parent accounts for kids programs", true],["Kids pathway with levels and certificates", true],["Club tournaments and ladders in the app", true],["Priority support"]]},
+     perks:[["Everything in Club"],["Unlimited coaches"],["Video drills from your coaches", true],["Video feedback from coaches on every rating"],["Parent accounts for kids programs", true],["Kids pathway with levels and certificates", true],["Club tournaments and ladders in the app", true],["Priority support"]]},
     {id:"flagship", name:"Flagship", max:null, price:2799, color:"#F2C94C", badge:"The full package",
      who:"300+ players or more than one location",
      perks:[["Everything in Academy"],["Your own branded app: your club's name and icon on every player's phone", true],["AI training plan for every player, built from the coach ratings", true],["Owner dashboard: retention, revenue per coach, players about to leave", true],["Match video analysis with every shot tagged", true],["Multiple locations under one club", true],["Connects to your booking system", true],["First right on the regions next to yours"],["Coach education day at your club"],["Your own account manager"],["Early access to every new feature"]]}
