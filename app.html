@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="assets/styles.css?v=32">
+<link rel="stylesheet" href="assets/styles.css?v=33">
 </head>
 <body class="app-body">
 
@@ -164,6 +164,8 @@
         <p id="devSub">Scored by your coach every six weeks. Last assessment: 29 September, Diego Morales.</p>
       </div>
 
+      <div class="pcard-wrap stack-b" id="pcardBody"></div>
+
       <div class="two">
         <div class="card">
           <div class="card-hd">
@@ -256,6 +258,11 @@
         </div>
       </div>
 
+      <div class="card stack" id="shopCard">
+        <div class="card-hd"><h3 data-i18n="cs.title">Style shop</h3><span class="chip" data-i18n="cs.sub">Spend points on your card</span></div>
+        <div id="cosShop"></div>
+      </div>
+
       <div class="card-hd stack"><h3 data-i18n="p.kantine">Bar &amp; shop</h3><span class="chip" data-i18n="p.inPoints">Prices in points</span></div>
       <div class="shop" id="shop"></div>
 
@@ -290,7 +297,11 @@
         <div id="feedBody" class="feed-list"></div>
       </div>
       <div class="card"><div class="standings" id="standings"></div></div>
-      <div class="card-hd stack"><h3 data-i18n="q.badges">Your badges</h3></div>
+      <div class="card stack">
+        <div class="card-hd"><h3 data-i18n="fr.title">Friends</h3></div>
+        <div id="friendsBody"></div>
+      </div>
+      <div class="card-hd stack"><h3 data-i18n="a.title">Achievements</h3><span class="chip ochre" id="achCount"></span></div>
       <div class="badges" id="badges"></div>
       <div class="card stack">
         <div class="card-hd"><h3 data-i18n="cr.title">Club vs club</h3><span class="chip ochre" data-i18n="cr.chip">Padel Vitals clubs</span></div>
@@ -317,7 +328,8 @@
         </div>
         <button class="btn btn-primary btn-sm" id="matchPost" data-i18n="m.post">Post a match</button>
       </div>
-      <div class="seg m-tabs"><button class="on" data-mtab="open" data-i18n="m.tabOpen">Open matches</button><button data-mtab="ladder" data-i18n="m.tabLadder">Ladder</button></div>
+      <div class="m-bar"><div class="seg m-tabs"><button class="on" data-mtab="open" data-i18n="m.tabOpen">Open matches</button><button data-mtab="ladder" data-i18n="m.tabLadder">Ladder</button><button data-mtab="rivals" data-i18n="m.tabRivals">Rivals</button></div>
+      <button class="btn btn-ghost btn-sm" id="openScoreboard">&#127934; <span data-i18n="sb.title">Scoreboard</span></button></div>
       <div id="matchBody" class="m-body"></div>
     </section>
 
@@ -465,15 +477,15 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/data.js?v=32"></script>
-<script src="assets/store.js?v=32"></script>
-<script src="assets/i18n.js?v=32"></script>
-<script src="assets/qr.js?v=32"></script>
-<script src="assets/site.js?v=32"></script>
-<script src="assets/scan.js?v=32"></script>
-<script src="assets/figure.js?v=32"></script>
+<script src="assets/data.js?v=33"></script>
+<script src="assets/store.js?v=33"></script>
+<script src="assets/i18n.js?v=33"></script>
+<script src="assets/qr.js?v=33"></script>
+<script src="assets/site.js?v=33"></script>
+<script src="assets/scan.js?v=33"></script>
+<script src="assets/figure.js?v=33"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/backend.js?v=32"></script>
-<script src="assets/app.js?v=32"></script>
+<script src="assets/backend.js?v=33"></script>
+<script src="assets/app.js?v=33"></script>
 </body>
 </html>

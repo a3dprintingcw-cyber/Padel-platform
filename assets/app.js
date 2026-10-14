@@ -154,7 +154,7 @@
     if(id !== "bar" && typeof stopScan === "function" && scanning) stopScan();
     $$(".view").forEach(function(v){ v.classList.toggle("on", v.id === "v-" + id); });
     if(id === "matches") loadMatches();
-    if(id === "squad"){ renderRanks(); loadFeed(); }
+    if(id === "squad"){ renderRanks(); loadFeed(); loadH2H(); if(!REAL && !LADDER.length) LADDER = demoLadder(); renderAchievements(); }
     if(id === "dash") loadChallenges();
     if(id === "schedule" || id === "cschedule") loadLessons();
     $$("[data-go]").forEach(function(x){ x.classList.toggle("active", x.dataset.go === id); });
@@ -577,12 +577,13 @@
     $("#drills").innerHTML = list.map(function(d){
       var done = S.drillDone(d.id);
       return '<article class="drill'+(done?" complete":"")+'" data-drill="'+d.id+'">'+
-        '<div class="thumb" style="background:'+d.g+'">'+
+        '<div class="thumb" style="background:'+d.g+'"'+(d.video ? ' data-drillvid="'+esc(d.video)+'" role="button"' : '')+'>'+
         '<div class="play"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M4 2.5l7 4.5-7 4.5z" fill="#F2F4F5"/></svg></div>'+
         '<span class="dur">'+d.dur+'</span></div>'+
         '<div class="drill-body"><h4>'+esc(d.n)+'</h4><div class="by">'+esc(d.by)+'</div>'+
         '<div class="chips"><span class="chip">'+d.lvl+'</span><span class="chip sea">'+d.kit+'</span></div>'+
-        '<button class="done">'+(done ? "&#10003; " + t("h.done") : t("h.mark") + " +15")+'</button>'+
+        '<div class="drill-btns"><button class="done">'+(done ? "&#10003; " + t("h.done") : t("h.mark") + " +15")+'</button>'+
+        '<button class="dtbtn" data-timer="'+d.id+'">&#9201; '+t("dt.timer")+'</button></div>'+
         '</div></article>';
     }).join("") ;
   }
@@ -1257,6 +1258,8 @@
       case "joinreq":      return {ic:"&#43;", t: t("n.joinreq", {by:d.name || ""}), s: t("n.joinreqS"), go:""};
       case "lessonbooked": return {ic:"&#128197;", t: t("n.lessonbooked", {by:(d.by || "").split(" ")[0]}), s: d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) : "", go:"cschedule"};
       case "lessoncancel": return {ic:"&#10005;", t: t("n.lessoncancel", {by:(d.by || "").split(" ")[0]}), s: d.at ? fmtDay(new Date(d.at)) + " · " + fmtTime(new Date(d.at)) : "", go:role === "coach" ? "cschedule" : "schedule"};
+      case "friendreq":    return {ic:"&#129309;", t: t("n.friendreq", {by:(d.by || "").split(" ")[0]}), s: t("n.friendreqS"), go:"squad"};
+      case "friendok":     return {ic:"&#129309;", t: t("n.friendok", {by:(d.by || "").split(" ")[0]}), s:"", go:"squad"};
       case "levelup":  return {ic:"&#9650;", t: t("n.levelup", {level: Number(d.level).toFixed(2)}), s: t("n.share"), go:"share"};
       default:         return {ic:"&#8226;", t: n.kind, s:"", go:""};
     }
@@ -1926,6 +1929,11 @@
     if(!el) return;
     $$("[data-mtab]").forEach(function(b){ b.classList.toggle("on", b.dataset.mtab === matchTab); });
     $("#matchPost").hidden = matchTab !== "open";
+    if(matchTab === "rivals"){
+      el.innerHTML = '<div class="card"><div id="rivalsBody"></div><p class="muted small">'+t("fr.rivalsHint")+'</p></div>';
+      if(H2H) renderRivals(); else loadH2H();
+      return;
+    }
     if(matchTab === "ladder"){
       var rows = LADDER.slice().map(function(r){ return Object.assign({}, r, {pct: r.played ? r.wins / r.played : 0}); })
         .sort(function(a,b){ return b.wins - a.wins || b.pct - a.pct || a.played - b.played; });
@@ -2356,6 +2364,522 @@
     if(e.target.closest("#wShare")) shareWrapped();
   });
 
+  /* ================================================================ player card */
+
+  var STAT_KEYS = [["Bandeja","BAN"],["Víbora","VIB"],["Wall exit","PAR"],["Volley","VOL"],["Serve & return","SAQ"],["Agility","AGI"]];
+  function tierOf(level){ return level >= 4 ? "volt" : level >= 3 ? "gold" : level >= 2 ? "silver" : "bronze"; }
+  function ovrOf(skills){
+    var r = (skills || []).filter(function(s){ return !s.unrated && s.v > 0; });
+    if(!r.length) return 0;
+    return Math.round(r.reduce(function(t, s){ return t + s.v; }, 0) / r.length * 10);
+  }
+  function mySkillsNow(){
+    var edits = S.club.skillEdits || {};
+    return D.SKILLS.map(function(s){ return {n:s.n, v: edits[s.n] != null ? edits[s.n] : s.v, unrated:s.unrated}; });
+  }
+
+  /* cosmetics: the price list is mirrored on the server, which has the final say */
+  var COSMETICS = [
+    {id:"frame.ice",    slot:"frame", price:300,  sw:"linear-gradient(140deg,#BDF6FF,#35C6D6)"},
+    {id:"frame.sunset", slot:"frame", price:400,  sw:"linear-gradient(140deg,#FFB86B,#FF5A7A)"},
+    {id:"frame.gold",   slot:"frame", price:800,  sw:"linear-gradient(140deg,#FFE58A,#C99A2E)"},
+    {id:"frame.neon",   slot:"frame", price:1200, sw:"linear-gradient(140deg,#C8F542,#35C6D6,#B48CFF)"},
+    {id:"theme.ice",    slot:"theme", price:500,  color:"#5CE1E6"},
+    {id:"theme.sunset", slot:"theme", price:500,  color:"#FF8A5B"},
+    {id:"theme.violet", slot:"theme", price:500,  color:"#B48CFF"},
+    {id:"theme.rose",   slot:"theme", price:500,  color:"#FF6FAE"},
+    {id:"badge.fire",   slot:"badge", price:200,  emoji:"🔥"},
+    {id:"badge.target", slot:"badge", price:300,  emoji:"🎯"},
+    {id:"badge.bolt",   slot:"badge", price:300,  emoji:"⚡"},
+    {id:"badge.crown",  slot:"badge", price:1000, emoji:"👑"}
+  ];
+  function cos(id){ return COSMETICS.filter(function(c){ return c.id === id; })[0] || null; }
+  function owned(){ return REAL ? (D.OWNED || []) : (D.__owned = D.__owned || []); }
+  function equipped(){ return REAL ? ((D.ME && D.ME.equipped) || {}) : (D.__eq = D.__eq || {}); }
+  function badgeOf(eq){ var b = eq && eq.badge && cos(eq.badge); return b ? " " + b.emoji : ""; }
+
+  function applyTheme(){
+    var th = cos(equipped().theme), root = document.documentElement;
+    if(th && role === "player"){
+      root.style.setProperty("--coral", th.color);
+      var h = th.color.replace("#", ""), r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+      root.style.setProperty("--coral-dim", "rgba(" + r + "," + g + "," + b + ",.14)");
+    } else { root.style.removeProperty("--coral"); root.style.removeProperty("--coral-dim"); }
+  }
+
+  function cardHtml(p){
+    /* p: {name, level, skills:[{n,v,unrated}], eq, club, logo} */
+    var tier = tierOf(p.level), fr = p.eq && p.eq.frame ? p.eq.frame.split(".")[1] : "";
+    var ovr = ovrOf(p.skills), map = {}; (p.skills || []).forEach(function(s){ map[s.n] = s; });
+    var ini = String(p.club || "").split(/\s+/).map(function(w){ return w.charAt(0); }).join("").slice(0,3).toUpperCase();
+    return '<div class="pcard t-'+tier+(fr ? " f-" + fr : "")+'"><div class="pc-in">'+
+      '<div class="pc-top"><div class="pc-ovr"><b>'+(ovr || "–")+'</b><small>OVR</small></div>'+
+        '<div class="pc-club">'+(p.logo ? '<img src="'+esc(p.logo)+'" alt="">' : '<span>'+esc(ini)+'</span>')+'</div></div>'+
+      '<div class="pc-name">'+esc(p.name)+esc(badgeOf(p.eq))+'</div>'+
+      '<div class="pc-lv">'+t("t.level")+' '+Number(p.level || 0).toFixed(2)+' · '+t("pc." + tier)+'</div>'+
+      '<div class="pc-stats">'+STAT_KEYS.map(function(k){
+        var s = map[k[0]], v = s && !s.unrated ? Math.round(s.v * 10) : null;
+        return '<div><b>'+(v == null ? "–" : v)+'</b><small>'+k[1]+'</small></div>';
+      }).join("")+'</div>'+
+      '<div class="pc-foot">PADEL <span>VITALS</span></div></div></div>';
+  }
+
+  function myCardData(){
+    return {name:myName(), level:myLevelNow(), skills:mySkillsNow(), eq:equipped(), club:clubName(), logo:clubLogoUrl()};
+  }
+  function renderPlayerCard(){
+    var el = $("#pcardBody");
+    if(!el) return;
+    el.innerHTML = cardHtml(myCardData())+
+      '<div class="pc-actions"><button class="btn btn-primary btn-sm" data-sharepc>'+t("pc.share")+'</button>'+
+      '<button class="btn btn-ghost btn-sm" data-go="pts" data-shopjump>'+t("pc.style")+'</button></div>';
+  }
+
+  /* the card as an image, with both logos underneath */
+  function drawPlayerCardImage(p, logo){
+    var W = 1080, H = 1350, c = cardBase(W, H), x = c.x;
+    var tier = tierOf(p.level), fr = p.eq && p.eq.frame ? p.eq.frame.split(".")[1] : "";
+    var cols = {bronze:["#E0A06A","#7A4A26"], silver:["#E8EEF2","#8C99A3"], gold:["#FFE58A","#C99A2E"], volt:["#C8F542","#35C6D6"]}[tier];
+    var frc = {ice:["#BDF6FF","#35C6D6"], sunset:["#FFB86B","#FF5A7A"], gold:["#FFE58A","#C99A2E"], neon:["#C8F542","#B48CFF"]}[fr] || cols;
+    var cx = 240, cy = 250, cw = 600, ch = 800;
+    var g = x.createLinearGradient(cx, cy, cx + cw, cy + ch); g.addColorStop(0, frc[0]); g.addColorStop(1, frc[1]);
+    x.fillStyle = g; roundRect(x, cx, cy, cw, ch, 48); x.fill();
+    var g2 = x.createLinearGradient(cx, cy, cx, cy + ch); g2.addColorStop(0, "#1C2126"); g2.addColorStop(1, "#0E1114");
+    x.fillStyle = g2; roundRect(x, cx + 14, cy + 14, cw - 28, ch - 28, 38); x.fill();
+    var ovr = ovrOf(p.skills);
+    x.fillStyle = cols[0]; x.font = "400 150px Anton, Impact, sans-serif"; x.fillText(String(ovr || "–"), cx + 56, cy + 190);
+    x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace"; x.fillText("OVR", cx + 62, cy + 235);
+    drawClubMark(x, cx + cw - 56 - 130, cy + 60, 130, logo);
+    x.fillStyle = "#F2F4F5"; x.font = "700 60px 'Instrument Sans', sans-serif"; x.textAlign = "center";
+    x.fillText((String(p.name || "").split(" ")[0] + badgeOf(p.eq)).slice(0, 18), cx + cw / 2, cy + 345);
+    x.fillStyle = "#9AA3AB"; x.font = "600 28px 'IBM Plex Mono', monospace";
+    x.fillText((t("t.level") + " " + Number(p.level).toFixed(2) + " · " + t("pc." + tier)).toUpperCase(), cx + cw / 2, cy + 395);
+    var map = {}; (p.skills || []).forEach(function(s){ map[s.n] = s; });
+    STAT_KEYS.forEach(function(k, i){
+      var col = i % 2, row = Math.floor(i / 2), sx = cx + 130 + col * 250, sy = cy + 500 + row * 95;
+      var s = map[k[0]], v = s && !s.unrated ? String(Math.round(s.v * 10)) : "–";
+      x.textAlign = "left"; x.fillStyle = "#F2F4F5"; x.font = "400 66px Anton, Impact, sans-serif"; x.fillText(v, sx, sy);
+      x.fillStyle = "#9AA3AB"; x.font = "600 30px 'IBM Plex Mono', monospace"; x.fillText(k[1], sx + 100, sy - 8);
+    });
+    x.textAlign = "left";
+    drawBrandRow(x, W, H - 230, logo);
+    return c.cv;
+  }
+  function sharePlayerCard(){
+    var p = myCardData();
+    Promise.all([cardFonts(), loadLogo()]).then(function(r){ shareCanvas(drawPlayerCardImage(p, r[1]), "padel-vitals-card.png", t("pc.shareText")); });
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("[data-sharepc]")){ sharePlayerCard(); return; }
+    if(e.target.closest("[data-shopjump]")) setTimeout(function(){ var s = $("#shopCard"); if(s) s.scrollIntoView({block:"start", behavior: calm ? "auto" : "smooth"}); }, 120);
+  });
+
+  /* ================================================================ cosmetics shop */
+
+  function renderShop2(){
+    var el = $("#cosShop");
+    if(!el) return;
+    var have = owned(), eq = equipped(), bal = points();
+    el.innerHTML = ["frame","theme","badge"].map(function(slot){
+      return '<div class="eyebrow cs-eb">'+t("cs." + slot)+'</div><div class="cs-grid">'+COSMETICS.filter(function(c){ return c.slot === slot; }).map(function(c){
+        var mine = have.indexOf(c.id) !== -1, on = eq[slot] === c.id;
+        var sw = c.sw ? '<span class="cs-sw" style="background:'+c.sw+'"></span>' : c.color ? '<span class="cs-sw" style="background:'+c.color+'"></span>' : '<span class="cs-sw cs-emoji">'+c.emoji+'</span>';
+        var act = on ? '<button class="btn btn-ghost btn-sm" data-unequip="'+slot+'">'+t("cs.on")+'</button>' :
+                  mine ? '<button class="btn btn-primary btn-sm" data-equip="'+c.id+'">'+t("cs.use")+'</button>' :
+                  '<button class="btn btn-ghost btn-sm" data-buy="'+c.id+'"'+(bal < c.price ? " disabled" : "")+'>'+fmt(c.price)+' '+t("c.pts")+'</button>';
+        return '<div class="cs-item'+(on ? " on" : "")+'">'+sw+'<b>'+t("cs." + c.id.replace(".", "_"))+'</b>'+act+'</div>';
+      }).join("")+'</div>';
+    }).join("");
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-buy]");
+    if(b){
+      var c = cos(b.dataset.buy);
+      if(!c || !window.confirm(t("cs.confirm", {item:t("cs." + c.id.replace(".", "_")), n:fmt(c.price)}))) return;
+      haptic(24);
+      if(!REAL){
+        if(points() < c.price){ window.r2toast(t("p.short")); return; }
+        owned().push(c.id); award(-c.price, t("cs.bought")); equipped()[c.slot] = c.id; applyTheme(); renderShop2(); renderPlayerCard(); return;
+      }
+      b.disabled = true;
+      PVB.act.buyCosmetic(c.id).then(function(){ return PVB.act.equip(c.slot, c.id); })
+        .then(function(){ return sync(Promise.resolve(), t("cs.bought")); }).then(function(){ applyTheme(); renderShop2(); renderPlayerCard(); })
+        .catch(function(err){ oops(err); b.disabled = false; });
+      return;
+    }
+    var q = e.target.closest("[data-equip]"), u = e.target.closest("[data-unequip]");
+    if(q || u){
+      var slot = q ? cos(q.dataset.equip).slot : u.dataset.unequip, item = q ? q.dataset.equip : null;
+      if(item) equipped()[slot] = item; else delete equipped()[slot];
+      applyTheme(); renderShop2(); renderPlayerCard();
+      if(REAL) PVB.act.equip(slot, item).catch(oops);
+    }
+  });
+
+  /* ================================================================ achievements */
+
+  var ACH = [
+    ["first",  "⭐", function(s){ return s.rated > 0; }],
+    ["shot7",  "🎯", function(s){ return s.best >= 7; }],
+    ["shot8",  "💥", function(s){ return s.best >= 8; }],
+    ["shot9",  "🌟", function(s){ return s.best >= 9; }, true],
+    ["allnine","🧩", function(s){ return s.allRated; }],
+    ["lv3",    "🥉", function(s){ return s.level >= 3; }],
+    ["lv4",    "🥈", function(s){ return s.level >= 4; }],
+    ["lv5",    "🥇", function(s){ return s.level >= 5; }, true],
+    ["s10",    "📅", function(s){ return s.sessions >= 10; }],
+    ["s25",    "🗓️", function(s){ return s.sessions >= 25; }],
+    ["s50",    "🏟️", function(s){ return s.sessions >= 50; }, true],
+    ["st4",    "🔥", function(s){ return s.streak >= 4; }],
+    ["st10",   "☄️", function(s){ return s.streak >= 10; }, true],
+    ["d5",     "🏠", function(s){ return s.drills >= 5; }],
+    ["d20",    "🧱", function(s){ return s.drills >= 20; }],
+    ["goal",   "🏁", function(s){ return s.goals >= 1; }],
+    ["goal3",  "🏆", function(s){ return s.goals >= 3; }],
+    ["play1",  "🎾", function(s){ return s.played >= 1; }],
+    ["win1",   "✌️", function(s){ return s.wins >= 1; }],
+    ["win10",  "👑", function(s){ return s.wins >= 10; }, true],
+    ["friend", "🤝", function(s){ return s.friends >= 1; }],
+    ["friend5","🫂", function(s){ return s.friends >= 5; }],
+    ["pass",   "🛂", function(s){ return s.passport; }],
+    ["style",  "🎨", function(s){ return s.cosmetics >= 1; }]
+  ];
+  function achStats(){
+    var sk = mySkillsNow(), rated = sk.filter(function(s){ return !s.unrated && s.v > 0; });
+    var lad = (LADDER || []).filter(function(r){ return r.member_id === myId(); })[0] || {};
+    var pp = REAL && D.ME ? D.ME.passport : D.__pp;
+    return {rated:rated.length, best:rated.reduce(function(m, s){ return Math.max(m, s.v); }, 0), allRated:rated.length >= D.SKILLS.length,
+            level:myLevelNow(), sessions: REAL ? ((D.ME && D.ME.attendedSeason) || 0) : 48, streak: CHAL ? CHAL.streak || 0 : 0,
+            drills: REAL ? ((D.SEASON && D.SEASON.drills) || 0) : (S.club.drillsDone || []).length + 9,
+            goals:(D.GOALS || []).filter(function(g){ return g.done; }).length, played:lad.played || 0, wins:lad.wins || 0,
+            friends:friendsList().filter(function(f){ return f.status === "accepted"; }).length, passport:!!(pp && pp.on), cosmetics:owned().length};
+  }
+  function renderAchievements(){
+    var el = $("#badges");
+    if(!el || role !== "player") return;
+    var st = achStats(), got = 0;
+    var html = ACH.map(function(a){
+      var on = !!a[2](st); if(on) got++;
+      return '<div class="badge'+(on ? "" : " off")+(a[3] && on ? " rare" : "")+'" title="'+esc(t("a." + a[0] + "D"))+'"><span class="bi">'+a[1]+'</span>'+
+        '<b>'+t("a." + a[0])+'</b><small>'+t("a." + a[0] + "D")+'</small></div>';
+    }).join("");
+    el.innerHTML = html;
+    var c = $("#achCount"); if(c) c.textContent = got + "/" + ACH.length;
+  }
+
+  /* ================================================================ friends, head to head, compare */
+
+  function friendsList(){
+    if(REAL) return D.FRIENDS || [];
+    return D.__friends || (D.__friends = [
+      {id:"p2", n:"Natalia Gomez", status:"accepted"}, {id:"p3", n:"Jake Miller", status:"accepted"},
+      {id:"p5", n:"Ryan Shah", status:"pending", incoming:true}]);
+  }
+  var H2H = null;
+  function loadH2H(){
+    if(!REAL){ H2H = [{opponent:"p2", full_name:"Natalia Gomez", played:5, won:3}, {opponent:"p3", full_name:"Jake Miller", played:4, won:1}, {opponent:"p6", full_name:"Valentina Lopez", played:2, won:2}]; renderFriends(); renderRivals(); return; }
+    PVB.act.headToHead().then(function(r){ H2H = r || []; renderFriends(); renderRivals(); }).catch(function(){});
+  }
+  function h2hFor(id){ return (H2H || []).filter(function(r){ return r.opponent === id; })[0]; }
+  function rosterById(id){ return D.ROSTER.filter(function(p){ return p.id === id; })[0] || {}; }
+
+  function renderFriends(){
+    var el = $("#friendsBody");
+    if(!el || role !== "player") return;
+    var list = friendsList();
+    var inc = list.filter(function(f){ return f.incoming; }), acc = list.filter(function(f){ return f.status === "accepted"; });
+    el.innerHTML = inc.map(function(f){
+      return '<div class="frow req"><span class="avatar sm sea">'+esc(initialsOf(f.n))+'</span><span class="who">'+esc(f.n)+'<small>'+t("fr.wants")+'</small></span>'+
+        '<span class="fr-act"><button class="btn btn-primary btn-sm" data-fadd="'+f.id+'">'+t("fr.accept")+'</button><button class="link-btn" data-fdel="'+f.id+'">'+t("fr.decline")+'</button></span></div>';
+    }).join("") + (acc.length ? acc.map(function(f){
+      var r = rosterById(f.id), h = h2hFor(f.id);
+      return '<div class="frow"><span class="avatar sm sea">'+esc(initialsOf(f.n))+'</span>'+
+        '<span class="who">'+esc(f.n)+'<small>'+t("t.level")+' '+(Number(r.rating) || 0).toFixed(2)+(h ? ' · '+t("fr.h2h", {w:h.won, l:h.played - h.won}) : '')+'</small></span>'+
+        '<span class="fr-act"><button class="btn btn-ghost btn-sm" data-fcard="'+f.id+'">'+t("fr.card")+'</button><button class="btn btn-primary btn-sm" data-fcmp="'+f.id+'">'+t("fr.compare")+'</button></span></div>';
+    }).join("") : '<p class="muted small">'+t("fr.none")+'</p>') +
+    '<button class="btn btn-ghost btn-sm fr-addbtn" id="friendAdd">'+t("fr.add")+'</button>';
+  }
+
+  function openAddFriends(){
+    var list = friendsList(), me = myId(), known = {};
+    list.forEach(function(f){ known[f.id] = f; });
+    modal('<div class="fadd"><h3>'+t("fr.add")+'</h3><input type="search" id="faFind" class="find" placeholder="'+esc(t("t.find"))+'">'+
+      '<div id="faList">'+D.ROSTER.filter(function(p){ return p.id !== me && !p.me; }).map(function(p){
+        var k = known[p.id];
+        var act = k ? (k.status === "accepted" ? '<span class="chip sea">'+t("fr.friends")+'</span>' : k.incoming ? '<button class="btn btn-primary btn-sm" data-fadd="'+p.id+'">'+t("fr.accept")+'</button>' : '<span class="chip">'+t("fr.sent")+'</span>')
+                    : '<button class="btn btn-primary btn-sm" data-fadd="'+p.id+'">'+t("fr.addOne")+'</button>';
+        return '<div class="frow" data-faname="'+esc(fold(p.n))+'"><span class="avatar sm sea">'+esc(p.i)+'</span><span class="who">'+esc(p.n)+'<small>'+esc(p.group || "")+' · '+(Number(p.rating) || 0).toFixed(2)+'</small></span><span class="fr-act">'+act+'</span></div>';
+      }).join("")+'</div></div>');
+  }
+
+  function profileOf(id){
+    if(!REAL){
+      var p = rosterById(id), det = demoDetail(p);
+      return Promise.resolve({id:id, name:p.n, level:p.rating, skills:det.skills, eq:id === "p2" ? {frame:"frame.gold", badge:"badge.crown"} : {}});
+    }
+    return PVB.act.friendProfile(id).then(function(r){
+      var map = {}; (r.skills || []).forEach(function(s){ map[s.skill] = Number(s.score); });
+      return {id:id, name:r.name, level:Number(r.level), eq:r.equipped || {},
+              skills:D.SKILLS.map(function(s){ return {n:s.n, v:map[s.n] || 0, unrated:map[s.n] == null}; })};
+    });
+  }
+
+  function radarSvg(a, b){
+    var axes = STAT_KEYS, N = axes.length, R = 110, cx = 140, cy = 135;
+    function pt(i, v){ var ang = -Math.PI / 2 + i * 2 * Math.PI / N; return [cx + Math.cos(ang) * R * v / 10, cy + Math.sin(ang) * R * v / 10]; }
+    function poly(sk){ var m = {}; sk.forEach(function(s){ m[s.n] = s.unrated ? 0 : s.v; }); return axes.map(function(k, i){ return pt(i, m[k[0]] || 0).join(","); }).join(" "); }
+    var rings = [2.5, 5, 7.5, 10].map(function(r){ return '<polygon points="'+axes.map(function(k, i){ return pt(i, r).join(","); }).join(" ")+'" class="rd-ring"/>'; }).join("");
+    var labels = axes.map(function(k, i){ var p = pt(i, 12); return '<text x="'+p[0]+'" y="'+(p[1] + 4)+'" class="rd-lab" text-anchor="middle">'+k[1]+'</text>'; }).join("");
+    return '<svg viewBox="0 0 280 270" class="rd" role="img" aria-label="Compare">'+rings+
+      '<polygon points="'+poly(b)+'" class="rd-b"/><polygon points="'+poly(a)+'" class="rd-a"/>'+labels+'</svg>';
+  }
+
+  function openCompare(id){
+    modal('<p class="muted small">…</p>');
+    profileOf(id).then(function(f){
+      var me = mySkillsNow(), fm = {}; f.skills.forEach(function(s){ fm[s.n] = s; });
+      var h = h2hFor(id);
+      $("#modalBody").innerHTML = '<div class="cmp"><h3>'+t("fr.youVs", {who:esc(f.name.split(" ")[0])})+'</h3>'+
+        '<div class="cmp-legend"><span class="a">'+t("q.you")+' · '+ovrOf(me)+'</span><span class="b">'+esc(f.name.split(" ")[0])+' · '+ovrOf(f.skills)+'</span></div>'+
+        radarSvg(me, f.skills)+
+        (h ? '<div class="cmp-h2h"><b>'+h.won+' – '+(h.played - h.won)+'</b><small>'+t("fr.h2hLong", {who:esc(f.name.split(" ")[0]), n:h.played})+'</small></div>' : '')+
+        '<div class="cmp-rows">'+me.map(function(s){
+          var o = fm[s.n] || {v:0, unrated:true}, a = s.unrated ? null : s.v, b = o.unrated ? null : o.v;
+          var d = a != null && b != null ? Math.round((a - b) * 10) / 10 : null;
+          return '<div class="cmp-row"><b class="'+(d > 0 ? "up" : "")+'">'+(a == null ? "–" : a.toFixed(1))+'</b><span>'+esc(s.n)+'</span><b class="'+(d < 0 ? "up" : "")+'">'+(b == null ? "–" : b.toFixed(1))+'</b></div>';
+        }).join("")+'</div>'+
+        '<p class="muted small">'+t("fr.tip")+'</p></div>';
+    }).catch(function(err){ closeModal(); oops(err); });
+  }
+  function openFriendCard(id){
+    modal('<p class="muted small">…</p>');
+    profileOf(id).then(function(f){
+      $("#modalBody").innerHTML = '<div class="fcard">'+cardHtml({name:f.name, level:f.level, skills:f.skills, eq:f.eq, club:clubName(), logo:clubLogoUrl()})+
+        '<button class="btn btn-primary btn-sm" data-fcmp="'+id+'">'+t("fr.compare")+'</button></div>';
+    }).catch(function(err){ closeModal(); oops(err); });
+  }
+
+  function renderRivals(){
+    var el = $("#rivalsBody");
+    if(!el || !H2H) return;
+    var list = H2H.slice().sort(function(a,b){ return b.played - a.played; });
+    el.innerHTML = list.length ? list.map(function(r){
+      var l = r.played - r.won, pct = r.played ? r.won / r.played * 100 : 0;
+      return '<div class="rival"><span class="avatar sm sea">'+esc(initialsOf(r.full_name))+'</span><span class="who">'+esc(r.full_name)+'<small>'+t("fr.played", {n:r.played})+'</small></span>'+
+        '<span class="rv-bar"><i style="width:'+pct+'%"></i></span><b class="rv-sc">'+r.won+'–'+l+'</b></div>';
+    }).join("") : '<p class="empty">'+t("fr.noRivals")+'</p>';
+  }
+
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#friendAdd")){ openAddFriends(); return; }
+    var a = e.target.closest("[data-fadd]");
+    if(a){
+      var id = a.dataset.fadd, list = friendsList(), ex = list.filter(function(f){ return f.id === id; })[0];
+      haptic();
+      if(!REAL){
+        if(ex){ ex.status = "accepted"; ex.incoming = false; } else list.push({id:id, n:rosterById(id).n, status:"pending"});
+        window.r2toast(ex ? t("fr.nowFriends") : t("fr.sent")); renderFriends(); renderAchievements();
+        if($("#faList")) openAddFriends(); return;
+      }
+      PVB.act.addFriend(id).then(function(r){ window.r2toast(r === "accepted" ? t("fr.nowFriends") : t("fr.sent")); return reload(); })
+        .then(function(){ if($("#faList")) openAddFriends(); }).catch(oops);
+      return;
+    }
+    var d = e.target.closest("[data-fdel]");
+    if(d){
+      if(!REAL){ D.__friends = friendsList().filter(function(f){ return f.id !== d.dataset.fdel; }); renderFriends(); return; }
+      PVB.act.removeFriend(d.dataset.fdel).then(reload).catch(oops);
+      return;
+    }
+    var c = e.target.closest("[data-fcmp]");
+    if(c){ openCompare(c.dataset.fcmp); return; }
+    var fc = e.target.closest("[data-fcard]");
+    if(fc){ openFriendCard(fc.dataset.fcard); return; }
+  });
+  document.addEventListener("input", function(e){
+    if(e.target.id !== "faFind") return;
+    var q = fold(e.target.value);
+    $$("#faList [data-faname]").forEach(function(r){ r.hidden = q && r.dataset.faname.indexOf(q) === -1; });
+  });
+
+  /* ================================================================ live scoreboard */
+
+  var SB = null, wakeLock = null;
+  function sbNew(){ return {p:[0,0], g:[0,0], sets:[], adv:null, golden:true, best:3, tb:false, done:false, winner:null, hist:[]}; }
+  function sbSnap(){ return JSON.stringify({p:SB.p, g:SB.g, sets:SB.sets, adv:SB.adv, tb:SB.tb, done:SB.done, winner:SB.winner}); }
+  function sbPointName(i){
+    if(SB.tb) return String(SB.p[i]);
+    var o = 1 - i;
+    if(SB.p[i] >= 3 && SB.p[o] >= 3 && !SB.golden){
+      if(SB.adv === i) return "AD"; if(SB.adv === o) return "40"; return "40";
+    }
+    return ["0","15","30","40"][Math.min(SB.p[i], 3)];
+  }
+  function sbWinGame(i){
+    SB.g[i]++; SB.p = [0,0]; SB.adv = null;
+    var o = 1 - i, gi = SB.g[i], go = SB.g[o];
+    if(SB.tb || (gi >= 6 && gi - go >= 2) || gi === 7){
+      SB.sets.push([SB.g[0], SB.g[1]]); SB.g = [0,0]; SB.tb = false;
+      var won = SB.sets.filter(function(s){ return s[i] > s[o]; }).length;
+      if(won > SB.best / 2){ SB.done = true; SB.winner = i; }
+    } else if(SB.g[0] === 6 && SB.g[1] === 6){ SB.tb = true; }
+  }
+  function sbPoint(i){
+    if(SB.done) return;
+    SB.hist.push(sbSnap());
+    var o = 1 - i;
+    if(SB.tb){
+      SB.p[i]++;
+      if(SB.p[i] >= 7 && SB.p[i] - SB.p[o] >= 2) sbWinGame(i);
+      return;
+    }
+    if(SB.p[i] >= 3 && SB.p[o] >= 3){
+      if(SB.golden){ sbWinGame(i); return; }
+      if(SB.adv === i){ sbWinGame(i); return; }
+      if(SB.adv === o){ SB.adv = null; return; }
+      SB.adv = i; return;
+    }
+    SB.p[i]++;
+    if(SB.p[i] >= 4) sbWinGame(i);
+  }
+  function sbScoreText(){ return SB.sets.map(function(s){ return s[0] + "-" + s[1]; }).join(" "); }
+
+  function sbHtml(){
+    var sets = SB.sets.map(function(s){ return '<span>'+s[0]+'–'+s[1]+'</span>'; }).join("");
+    var side = function(i){
+      return '<button class="sb-side s'+i+(SB.winner === i ? " won" : "")+'" data-sbpt="'+i+'"'+(SB.done ? " disabled" : "")+'>'+
+        '<small>'+(i === 0 ? t("sb.us") : t("sb.them"))+'</small><b>'+sbPointName(i)+'</b><em>'+SB.g[i]+' '+t("sb.games")+'</em></button>';
+    };
+    return '<div class="sboard">'+
+      '<div class="sb-top"><span class="sb-sets">'+(sets || t("sb.set1"))+(SB.tb ? '<span class="chip ochre">'+t("sb.tb")+'</span>' : '')+'</span>'+
+      '<label class="sb-gp"><input type="checkbox" id="sbGolden"'+(SB.golden ? " checked" : "")+'> '+t("sb.golden")+'</label></div>'+
+      '<div class="sb-sides">'+side(0)+side(1)+'</div>'+
+      (SB.done ? '<div class="sb-done"><b>'+(SB.winner === 0 ? t("sb.weWon") : t("sb.theyWon"))+'</b><span>'+sbScoreText()+'</span>'+
+        '<div class="row-btns">'+(sbOpenMatch() ? '<button class="btn btn-primary btn-sm" id="sbSave">'+t("sb.save")+'</button>' : '')+
+        (SB.winner === 0 ? '<button class="btn btn-ghost btn-sm" data-sharewin="'+esc(sbScoreText())+'">'+t("sc.shareWin")+'</button>' : '')+
+        '<button class="btn btn-ghost btn-sm" id="sbNew">'+t("sb.new")+'</button></div></div>' :
+        '<div class="sb-bottom"><button class="btn btn-ghost btn-sm" id="sbUndo"'+(SB.hist.length ? "" : " disabled")+'>'+t("sb.undo")+'</button>'+
+        '<select id="sbBest"><option value="3"'+(SB.best === 3 ? " selected" : "")+'>'+t("sb.best3")+'</option><option value="1"'+(SB.best === 1 ? " selected" : "")+'>'+t("sb.best1")+'</option></select></div>')+
+    '</div>';
+  }
+  /* a match of mine with four players and no score yet, to save the result into */
+  function sbOpenMatch(){
+    var me = myId(), soon = Date.now() + 6 * 36e5;
+    return (MATCHES || []).filter(function(m){
+      return m.status !== "played" && m.players.length === 4 && new Date(m.at).getTime() < soon && m.players.some(function(p){ return p.id === me; });
+    }).sort(function(a,b){ return new Date(b.at) - new Date(a.at); })[0] || null;
+  }
+  function openScoreboard(){
+    if(!SB || SB.done) SB = sbNew();
+    modal(sbHtml());
+    document.body.classList.add("sb-open");
+    if(navigator.wakeLock && navigator.wakeLock.request){ navigator.wakeLock.request("screen").then(function(w){ wakeLock = w; }).catch(function(){}); }
+  }
+  function sbPaint(){ var b = $("#modalBody"); if(b && b.querySelector(".sboard")) b.innerHTML = sbHtml(); }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("#openScoreboard")){ openScoreboard(); return; }
+    var s = e.target.closest("[data-sbpt]");
+    if(s && SB){ haptic(14); sbPoint(+s.dataset.sbpt); sbPaint(); return; }
+    if(e.target.closest("#sbUndo") && SB && SB.hist.length){ var h = JSON.parse(SB.hist.pop()); Object.assign(SB, h); sbPaint(); return; }
+    if(e.target.closest("#sbNew")){ var g = SB ? SB.golden : true, b2 = SB ? SB.best : 3; SB = sbNew(); SB.golden = g; SB.best = b2; sbPaint(); return; }
+    if(e.target.closest("#sbSave")){
+      var m = sbOpenMatch(), score = sbScoreText(), won = SB.winner === 0;
+      if(!m) return;
+      resultForm(m.id);
+      setTimeout(function(){
+        var sc = $("#mrScore"); if(sc) sc.value = score;
+        var r = document.querySelector('input[name="mrWin"][value="'+(won ? "1" : "2")+'"]'); if(r) r.checked = true;
+      }, 30);
+    }
+  });
+  document.addEventListener("change", function(e){
+    if(e.target.id === "sbGolden" && SB){ SB.golden = e.target.checked; sbPaint(); }
+    if(e.target.id === "sbBest" && SB){ SB.best = +e.target.value; sbPaint(); }
+  });
+  /* release the screen when the board closes */
+  new MutationObserver(function(){
+    if($("#modal").hidden && document.body.classList.contains("sb-open")){
+      document.body.classList.remove("sb-open");
+      if(wakeLock){ try{ wakeLock.release(); }catch(err){} wakeLock = null; }
+    }
+  }).observe($("#modal"), {attributes:true, attributeFilter:["hidden"]});
+
+  /* ================================================================ drill timer */
+
+  var TM = null, audioCtx = null;
+  function beep(freq, ms){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.18, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + ms / 1000);
+      o.start(); o.stop(audioCtx.currentTime + ms / 1000);
+    }catch(e){}
+  }
+  function tmHtml(){
+    var d = TM.drill, phase = TM.phase, total = phase === "work" ? TM.work : TM.rest;
+    var pct = TM.left / total * 100;
+    var mm = Math.floor(TM.left / 60), ss = TM.left % 60;
+    return '<div class="dtimer ph-'+phase+'"><div class="eyebrow">'+esc(d.n)+'</div>'+
+      '<div class="dt-ring" style="--p:'+pct+'"><div><b>'+(mm ? mm + ":" + String(ss).padStart(2, "0") : ss)+'</b><small>'+
+        (phase === "done" ? t("dt.done") : phase === "work" ? t("dt.work") : phase === "rest" ? t("dt.rest") : t("dt.ready"))+'</small></div></div>'+
+      '<div class="dt-round">'+t("dt.round", {n:Math.min(TM.round, TM.rounds), of:TM.rounds})+'</div>'+
+      (TM.phase === "idle" ? '<div class="field-row dt-set">'+
+        '<label class="field"><span>'+t("dt.work")+'</span><input type="number" id="dtWork" min="5" max="600" value="'+TM.work+'"></label>'+
+        '<label class="field"><span>'+t("dt.rest")+'</span><input type="number" id="dtRest" min="0" max="300" value="'+TM.rest+'"></label>'+
+        '<label class="field"><span>'+t("dt.rounds")+'</span><input type="number" id="dtRounds" min="1" max="30" value="'+TM.rounds+'"></label></div>' : '')+
+      '<div class="row-btns dt-btns">'+
+        (TM.phase === "done" ? '<button class="btn btn-ghost" id="dtReset">'+t("dt.again")+'</button>' :
+         TM.running ? '<button class="btn btn-ghost" id="dtPause">'+t("dt.pause")+'</button>' :
+         '<button class="btn btn-primary" id="dtStart">'+(TM.phase === "idle" ? t("dt.start") : t("dt.resume"))+'</button>')+
+        (TM.phase !== "idle" && TM.phase !== "done" ? '<button class="btn btn-ghost" id="dtReset">'+t("dt.reset")+'</button>' : '')+
+      '</div></div>';
+  }
+  function tmPaint(){ var b = $("#modalBody"); if(b && b.querySelector(".dtimer")) b.innerHTML = tmHtml(); else tmStop(); }
+  function tmStop(){ if(TM && TM.iv){ clearInterval(TM.iv); TM.iv = null; } if(TM) TM.running = false; }
+  function tmTick(){
+    if(!TM || !TM.running) return;
+    TM.left--;
+    if(TM.left > 0 && TM.left <= 3) beep(660, 120);
+    if(TM.left <= 0){
+      if(TM.phase === "work"){
+        if(TM.round >= TM.rounds){ TM.phase = "done"; TM.left = 0; tmStop(); beep(990, 500); haptic(200); tmFinish(); }
+        else if(TM.rest > 0){ TM.phase = "rest"; TM.left = TM.rest; beep(440, 300); haptic(60); }
+        else { TM.round++; TM.left = TM.work; beep(880, 300); haptic(60); }
+      } else { TM.phase = "work"; TM.round++; TM.left = TM.work; beep(880, 300); haptic(60); }
+    }
+    tmPaint();
+  }
+  function tmFinish(){
+    var d = TM.drill;
+    if(S.drillDone(d.id)) return;
+    var card = document.querySelector('.drill[data-drill="'+d.id+'"] .done');
+    if(card) card.click();
+  }
+  function openTimer(id){
+    var d = D.DRILLS.filter(function(x){ return x.id === id; })[0];
+    if(!d) return;
+    tmStop();
+    TM = {drill:d, work:40, rest:20, rounds:6, round:1, phase:"idle", left:40, running:false, iv:null};
+    modal(tmHtml());
+  }
+  document.addEventListener("click", function(e){
+    var o = e.target.closest("[data-timer]");
+    if(o){ openTimer(o.dataset.timer); return; }
+    var v = e.target.closest("[data-drillvid]");
+    if(v){ window.open(v.dataset.drillvid, "_blank", "noopener"); return; }
+    if(!TM) return;
+    if(e.target.closest("#dtStart")){
+      if(TM.phase === "idle"){
+        TM.work = Math.max(5, parseInt($("#dtWork").value, 10) || 40); TM.rest = Math.max(0, parseInt($("#dtRest").value, 10) || 0);
+        TM.rounds = Math.max(1, parseInt($("#dtRounds").value, 10) || 1); TM.phase = "work"; TM.left = TM.work; TM.round = 1; beep(880, 300);
+      }
+      TM.running = true; TM.iv = setInterval(tmTick, 1000); tmPaint(); return;
+    }
+    if(e.target.closest("#dtPause")){ tmStop(); tmPaint(); return; }
+    if(e.target.closest("#dtReset")){ tmStop(); TM.phase = "idle"; TM.round = 1; TM.left = TM.work; tmPaint(); }
+  });
+
   /* ================================================================ monthly report link */
   function reportUrl(memberId){
     return "report.html" + (REAL ? "?player=" + encodeURIComponent(memberId) : "?demo=1");
@@ -2629,6 +3153,11 @@
     renderChallenges();
     renderFeed();
     renderLessons();
+    applyTheme();
+    renderPlayerCard();
+    renderShop2();
+    renderAchievements();
+    renderFriends();
     if($("#v-squad") && $("#v-squad").classList.contains("on")) renderRanks();
     paintBell();
     paintInstall();

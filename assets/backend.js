@@ -164,7 +164,7 @@ window.PV = (function(){
     var staff = me.role !== "player";
 
     var q = await Promise.all([
-      sb.from("members").select("id, full_name, email, role, group_id, level, status, passport_code, passport_public").eq("club_id", cid).neq("status","removed").order("full_name"),
+      sb.from("members").select("id, full_name, email, role, group_id, level, status, passport_code, passport_public, equipped").eq("club_id", cid).neq("status","removed").order("full_name"),
       sb.from("groups").select("id, name, days").eq("club_id", cid).order("name"),
       sb.from("sessions").select("id, kind, starts_at, duration_min, court, note, capacity, points, coach_id, group_id").eq("club_id", cid)
         .gte("starts_at", new Date(now.getTime() - 12*36e5).toISOString()).lte("starts_at", until).order("starts_at"),
@@ -181,14 +181,16 @@ window.PV = (function(){
       sb.from("attendance").select("session_id, created_at").eq("member_id", me.id).gte("created_at", since),
       sb.rpc("club_standings", {p_club: cid}),
       sb.from("goals").select("id, skill, target, start_score, due, done_at, created_at").eq("player_id", me.id).order("created_at", {ascending:false}),
-      sb.from("notifications").select("id, kind, data, read_at, created_at").eq("member_id", me.id).order("created_at", {ascending:false}).limit(30)
+      sb.from("notifications").select("id, kind, data, read_at, created_at").eq("member_id", me.id).order("created_at", {ascending:false}).limit(30),
+      sb.from("cosmetics_owned").select("item").eq("member_id", me.id),
+      sb.from("friendships").select("member_id, friend_id, status").or("member_id.eq." + me.id + ",friend_id.eq." + me.id)
     ]);
     q.forEach(function(r){ if(r.error) console.warn("load:", r.error.message); });
     var members = q[0].data || [], groups = q[1].data || [], sessions = q[2].data || [], counts = q[3].data || [],
         rsvps = q[4].data || [], ratings = q[5].data || [], avgs = q[6].data || [], notes = q[7].data || [],
         drills = q[8].data || [], done = q[9].data || [], ledger = q[10].data || [], rewards = q[11].data || [],
         reds = q[12].data || [], att = q[13].data || [], standings = q[14].data || [],
-        goals = q[15].data || [], notifs = q[16].data || [];
+        goals = q[15].data || [], notifs = q[16].data || [], owned = q[17].data || [], friends = q[18].data || [];
     state.members = members;
 
     var byId = {}; members.forEach(function(m){ byId[m.id] = m; });
@@ -284,13 +286,18 @@ window.PV = (function(){
               due:g.due, done:!!g.done_at};
     });
     R2.NOTIFS = notifs;
+    R2.OWNED = owned.map(function(o){ return o.item; });
+    R2.FRIENDS = friends.map(function(f){
+      var other = f.member_id === me.id ? f.friend_id : f.member_id;
+      return {id:other, n:nm(other), status:f.status, incoming: f.friend_id === me.id && f.status === "pending"};
+    });
     var yr = new Date(now.getFullYear(), 0, 1);
     R2.SEASON = {points: ledger.filter(function(p){ return p.amount > 0 && new Date(p.created_at) >= yr; }).reduce(function(t, p){ return t + p.amount; }, 0),
                  drills: done.length};
     R2.NOTES = notes.map(function(n){ return {body:n.body, by:nm(n.coach_id), on:dayMonth(n.created_at)}; });
     R2.GROUPS = groups;
     var meRow = byId[me.id] || me;
-    R2.ME = {id:me.id, role:me.role, level:Number(me.level), club:c, passport:{code:meRow.passport_code || null, on:!!meRow.passport_public}, attendedSeason: (std[me.id] || {}).sessions || att.length};
+    R2.ME = {id:me.id, role:me.role, level:Number(me.level), club:c, equipped:meRow.equipped || {}, passport:{code:meRow.passport_code || null, on:!!meRow.passport_public}, attendedSeason: (std[me.id] || {}).sessions || att.length};
 
     /* the local store becomes a cache of the server's answer */
     var balance = ledger.reduce(function(t, p){ return t + p.amount; }, 0);
@@ -488,6 +495,12 @@ window.PV = (function(){
     deleteSlot: function(id){ return sb.from("lesson_slots").delete().eq("id", id).then(fail); },
     bookLesson: function(id){ return sb.rpc("book_lesson", {p_slot:id}).then(fail); },
     cancelLesson: function(id){ return sb.rpc("cancel_lesson", {p_slot:id}).then(fail); },
+    buyCosmetic: function(item){ return sb.rpc("buy_cosmetic", {p_club:state.club.id, p_item:item}).then(fail); },
+    equip: function(slot, item){ return sb.rpc("equip_cosmetic", {p_club:state.club.id, p_slot:slot, p_item:item}).then(fail); },
+    addFriend: function(id){ return sb.rpc("add_friend", {p_friend:id}).then(fail); },
+    removeFriend: function(id){ return sb.rpc("remove_friend", {p_friend:id}).then(fail); },
+    friendProfile: function(id){ return sb.rpc("friend_profile", {p_friend:id}).then(fail); },
+    headToHead: function(){ return sb.rpc("head_to_head", {p_club:state.club.id}).then(fail); },
     savePush: function(sub){
       var j = sub.toJSON();
       return sb.from("push_subs").upsert({endpoint:j.endpoint, member_id:state.member.id, club_id:state.club.id,
