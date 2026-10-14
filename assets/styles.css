@@ -1129,3 +1129,9 @@ table.ladder{width:100%;border-collapse:collapse;font-size:14px}
 .cr-stat b{display:block;font-family:var(--f-display);font-size:18px}
 .cr-stat small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 #ranksBody .rank{grid-template-columns:28px 1fr auto auto}
+.chip.danger{color:#FF8A8A;border-color:rgba(255,90,90,.3);background:rgba(255,90,90,.1)}
+.danger-text{color:#FF8A8A}
+.bill-price{font-size:15px;margin:4px 0 10px}
+.bill-price b{font-family:var(--f-display);font-size:30px;color:var(--coral);margin-right:4px}
+.pp-buttons{max-width:380px;margin-top:10px;background:#fff;border-radius:14px;padding:12px}
+.bill-change{margin-top:16px}

@@ -83,7 +83,7 @@
 
   async function listClubs(){
     try{
-      var clubs = fail(await sb.from("clubs").select("id, name, country, region, city, plan, status, created_at").order("created_at", {ascending:false}));
+      var clubs = fail(await sb.from("clubs").select("id, name, country, region, city, plan, status, billing_status, paypal_sub, paid_until, created_at").order("created_at", {ascending:false}));
       var mem = fail(await sb.from("members").select("club_id, role, status, email"));
       var count = {}, owner = {};
       mem.forEach(function(m){
@@ -100,7 +100,8 @@
       $("#clubList").innerHTML = clubs.length ? clubs.map(function(c){
         var n = count[c.id] || {player:0, coach:0};
         return '<div class="arow"><div class="arow-main"><b>'+esc(c.name)+'</b><small>'+esc(c.region)+', '+esc(c.country)+(c.city ? ' · '+esc(c.city) : '')+'</small>'+
-          '<small>Owner: '+esc(owner[c.id] || "none")+' · '+n.player+' players · '+n.coach+' coaches</small></div>'+
+          '<small>Owner: '+esc(owner[c.id] || "none")+' · '+n.player+' players · '+n.coach+' coaches</small>'+
+          '<small>'+billChip(c.billing_status)+(c.paypal_sub ? ' PayPal '+esc(c.paypal_sub) : '')+(c.paid_until ? ' · paid until '+new Date(c.paid_until).toLocaleDateString() : '')+'</small></div>'+
           '<div class="arow-ctl">'+
             '<select data-club-plan="'+c.id+'">'+PLANS.map(function(p){ return '<option value="'+p.id+'"'+(p.id===c.plan?" selected":"")+'>'+p.name+'</option>'; }).join("")+'</select>'+
             '<select data-club-status="'+c.id+'">'+["trial","active","paused","cancelled"].map(function(s){ return '<option'+(s===c.status?" selected":"")+'>'+s+'</option>'; }).join("")+'</select>'+
@@ -109,6 +110,8 @@
       }).join("") : '<p class="muted">No clubs yet. Create the first one above.</p>';
     }catch(err){ oops(err); }
   }
+  var BILL = {none:["Not set up","chip"], pending:["Waiting for PayPal","chip ochre"], active:["Paying by PayPal","chip sea"], past_due:["Payment failed","chip danger"], cancelled:["Cancelled","chip danger"]};
+  function billChip(b){ var x = BILL[b || "none"] || BILL.none; return '<span class="'+x[1]+'">'+x[0]+'</span>'; }
   function kpi(v, l){ return '<div class="kpi"><b>'+v+'</b><span>'+l+'</span></div>'; }
 
   document.addEventListener("change", async function(e){
@@ -146,7 +149,7 @@
     q.forEach(function(r){ if(r.error) console.warn(r.error.message); });
     MEMBERS = q[0].data || []; GROUPS = q[1].data || [];
     drawStats(q[4].data || [], q[5].data || []);
-    drawMembers(); drawGroups(); drawSessions(q[2].data || []); drawRewards(q[3].data || []); drawClub();
+    drawMembers(); drawGroups(); drawSessions(q[2].data || []); drawRewards(q[3].data || []); drawClub(); drawBilling();
   }
 
   function tabs(){
@@ -302,6 +305,63 @@
       try{ fail(await sb.from("rewards").delete().eq("id", r.dataset.rRemove)); refresh(); }catch(err){ oops(err); }
     }
   });
+
+  /* billing: the owner subscribes with PayPal; the webhook marks the club as paying */
+  var paypalLoading = null;
+  function loadPaypal(cfg){
+    if(window.paypal) return Promise.resolve();
+    if(paypalLoading) return paypalLoading;
+    paypalLoading = new Promise(function(ok, no){
+      var sc = document.createElement("script");
+      sc.src = "https://www.paypal.com/sdk/js?client-id=" + encodeURIComponent(cfg.clientId) + "&vault=true&intent=subscription&components=buttons";
+      sc.onload = ok; sc.onerror = function(){ paypalLoading = null; no(new Error("PayPal did not load")); };
+      document.head.appendChild(sc);
+    });
+    return paypalLoading;
+  }
+  function drawBilling(){
+    var box = $("#billingCard");
+    if(!box || !CLUB) return;
+    var plan = PLANS.filter(function(x){ return x.id === CLUB.plan; })[0] || PLANS[0];
+    var cfg = (window.PP && window.PP.PAYPAL) || {};
+    var planId = cfg.plans && cfg.plans[plan.id];
+    var b = CLUB.billing_status || "none";
+    var contact = window.PP ? window.PP.waLink("Hi, I'd like to pay for Padel Vitals for " + CLUB.name + ".") : "#";
+    var html = '<div class="card-hd"><h3>'+esc(plan.name)+' plan</h3>'+billChip(b)+'</div>'+
+      '<p class="bill-price"><b>'+money(plan.price)+'</b> per month · '+esc(plan.who)+'</p>';
+    if(b === "active"){
+      html += '<p class="muted small">Paid by PayPal'+(CLUB.paid_until ? '. Next payment around '+new Date(CLUB.paid_until).toLocaleDateString() : '')+'.</p>'+
+        '<a class="btn btn-ghost btn-sm" href="https://www.paypal.com/myaccount/autopay/" target="_blank" rel="noopener">Manage in PayPal</a>';
+    } else if(b === "pending"){
+      html += '<p class="muted small">Thanks. PayPal is confirming your subscription; this page updates within a few minutes.</p>';
+    } else {
+      if(b === "past_due") html += '<p class="small danger-text">Your last payment didn\'t go through. Update your card in PayPal or subscribe again below to keep your club running.</p>';
+      if(cfg.clientId && planId){
+        html += '<p class="muted small">Pay monthly with PayPal or a card. Cancel any time from your PayPal account.</p><div id="ppButtons" class="pp-buttons"></div>';
+      } else {
+        html += '<p class="muted small">Online payment opens soon. To start paying now, message us and we send you an invoice.</p>'+
+          '<a class="btn btn-primary btn-sm" href="'+contact+'" target="_blank" rel="noopener">Message us on WhatsApp</a>';
+      }
+    }
+    html += '<p class="muted small bill-change">Want a different plan? <a class="coral" href="'+contact+'" target="_blank" rel="noopener">Tell us</a> and we switch it the same day.</p>';
+    box.innerHTML = html;
+    if(cfg.clientId && planId && b !== "active" && b !== "pending"){
+      loadPaypal(cfg).then(function(){
+        window.paypal.Buttons({
+          style:{shape:"pill", color:"gold", layout:"vertical", label:"subscribe"},
+          createSubscription: function(data, actions){ return actions.subscription.create({plan_id:planId, custom_id:CLUB.id}); },
+          onApprove: function(data){
+            return sb.rpc("attach_subscription", {p_club:CLUB.id, p_sub:data.subscriptionID}).then(function(r){
+              if(r.error) throw r.error;
+              CLUB.billing_status = "pending"; CLUB.paypal_sub = data.subscriptionID; drawBilling(); toast("Subscribed. Thank you!");
+              setTimeout(function(){ admin(CLUB.id); }, 15000);
+            }).catch(oops);
+          },
+          onError: function(err){ oops({message:"PayPal: " + ((err && err.message) || "something went wrong")}); }
+        }).render("#ppButtons");
+      }).catch(oops);
+    }
+  }
 
   /* club settings */
   function drawClub(){

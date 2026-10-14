@@ -27,6 +27,14 @@ window.PP = (function(){
      perks:[["Everything in Academy"],["Your own branded app: your club's name and icon on every player's phone", true],["AI training plan for every player, built from the coach ratings", true],["Owner dashboard: retention, revenue per coach, players about to leave", true],["Match video analysis with every shot tagged", true],["Multiple locations under one club", true],["Connects to your booking system", true],["First right on the regions next to yours"],["Coach education day at your club"],["Your own account manager"],["Early access to every new feature"]]}
   ];
 
+  /* PayPal subscriptions. The client id is public; the secret lives only in Supabase.
+     Fill the plan ids after creating the four monthly plans in PayPal. */
+  var PAYPAL = {
+    env: "sandbox",
+    clientId: "",
+    plans: {starter:"", club:"", academy:"", flagship:""}
+  };
+
   function planFor(players){
     players = +players || 0;
     for(var i=0;i<PLANS.length;i++){ if(PLANS[i].max === null || players <= PLANS[i].max) return PLANS[i]; }
@@ -79,5 +87,5 @@ window.PP = (function(){
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
-  return {CONTACT:CONTACT, PLANS:PLANS, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
+  return {CONTACT:CONTACT, PLANS:PLANS, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
 })();

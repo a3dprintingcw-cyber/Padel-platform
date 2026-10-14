@@ -2370,6 +2370,8 @@
     document.body.classList.add("real");
     var st = await PVB.whoami();
     if(!st.member){ showNoClub(st); return true; }
+    var cst = st.member.clubs && st.member.clubs.status;
+    if((cst === "paused" || cst === "cancelled") && !(PVB.state && PVB.state.isAdmin)){ showPaused(st); return true; }
     if(!st.member.full_name && st.googleName){ try{ await PVB.act.setMyName(st.googleName); st.member.full_name = st.googleName; }catch(e){} }
     S.patch({academy: "club-" + st.member.club_id, account:null});
     await PVB.load();
@@ -2394,6 +2396,14 @@
     box.hidden = false;
     box.innerHTML = '<p>'+t("g.noClub", {email: esc(st.user.email)})+'</p>'+
       (st.isAdmin ? '<a class="btn btn-primary gate-go" href="platform.html">'+t("g.platform")+'</a>' : '')+
+      '<button class="btn btn-ghost btn-sm" id="gateOut">'+t("c.signOut")+'</button>';
+  }
+
+  function showPaused(st){
+    showNoClub(st);
+    var owner = st.member.role === "owner";
+    $("#gateNoClub").innerHTML = '<p>'+(owner ? t("g.pausedOwner") : t("g.paused", {club: esc((st.member.clubs || {}).name || "")}))+'</p>'+
+      (owner ? '<a class="btn btn-primary gate-go" href="admin.html">'+t("g.billing")+'</a>' : '')+
       '<button class="btn btn-ghost btn-sm" id="gateOut">'+t("c.signOut")+'</button>';
   }
 
