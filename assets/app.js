@@ -158,7 +158,14 @@
     if(id === "dash") loadChallenges();
     if(id === "schedule" || id === "cschedule") loadLessons();
     $$("[data-go]").forEach(function(x){ x.classList.toggle("active", x.dataset.go === id); });
-    if(push && location.hash !== "#" + id) history.replaceState(null, "", "#" + id);
+    if(push && location.hash !== "#" + id){
+      if(!replaceNext && navStack.length && navStack[navStack.length-1] !== id){ history.pushState({pv:id}, "", "#" + id); }
+      else history.replaceState({pv:id}, "", "#" + id);
+      replaceNext = false;
+    }
+    if(navStack[navStack.length-1] !== id) navStack.push(id);
+    if(navStack.length > 20) navStack.shift();
+    paintBack(id);
     window.scrollTo({top:0, behavior: calm ? "auto" : "smooth"});
   }
 
@@ -166,7 +173,7 @@
     if(e.target.closest("#moreTab")){ openMore(); return; }
     var b = e.target.closest("[data-go]");
     if(!b) return;
-    if(b.hasAttribute("data-close")) closeModal();
+    if(b.hasAttribute("data-close")){ closingForNav = true; closeModal(); closingForNav = false; }
     show(b.dataset.go, true);
   });
 
@@ -1305,6 +1312,7 @@
     var g = e.target.closest("[data-ngo]");
     if(g){
       var go = g.dataset.ngo;
+      closingForNav = !!go && go !== "share"; closeModal(); closingForNav = false;
       if(go === "share") setTimeout(shareCard, 80);
       else if(go) show(go, true);
     }
@@ -2880,7 +2888,71 @@
     if(e.target.closest("#dtReset")){ tmStop(); TM.phase = "idle"; TM.round = 1; TM.left = TM.work; tmPaint(); }
   });
 
-  /* ================================================================ monthly report link */
+  /* ================================================================ compact helpers */
+
+  /* the skill profile box takes the height of the slide on show, not the tallest one */
+  (function(){
+    var strip = $("#pslides");
+    if(!strip) return;
+    function fit(){
+      var slides = strip.querySelectorAll(".pslide");
+      if(!slides.length || !strip.clientWidth) return;
+      var i = Math.max(0, Math.min(slides.length - 1, Math.round(strip.scrollLeft / strip.clientWidth)));
+      var h = slides[i].scrollHeight;
+      if(h) strip.style.height = h + "px";
+    }
+    var tm;
+    strip.addEventListener("scroll", function(){ clearTimeout(tm); tm = setTimeout(fit, 60); }, {passive:true});
+    window.addEventListener("resize", fit);
+    document.addEventListener("click", function(e){ if(e.target.closest("[data-slide]")) setTimeout(fit, 420); });
+    if(window.ResizeObserver) new ResizeObserver(fit).observe(strip);
+    setTimeout(fit, 300);
+  })();
+
+  /* coach notes: the latest one, the rest one tap away */
+  function compactNotes(){
+    var list = $("#notesList");
+    if(!list) return;
+    var n = list.querySelectorAll(".note").length, btn = $("#notesMore");
+    if(n < 2){ if(btn) btn.hidden = true; list.classList.remove("collapsed"); return; }
+    if(!btn){
+      btn = document.createElement("button"); btn.id = "notesMore"; btn.className = "link-btn notes-more";
+      list.after(btn);
+      btn.onclick = function(){ list.classList.toggle("collapsed"); compactNotes(); };
+      list.classList.add("collapsed");
+    }
+    btn.hidden = false;
+    btn.textContent = list.classList.contains("collapsed") ? t("c.showAll", {n:n}) : t("c.showLess");
+  }
+
+  /* ================================================================ going back
+     Every screen and every pop-up joins the phone's history, so the back
+     gesture and a visible back button always take you one step back. */
+
+  var navStack = [], modalState = false, poppingModal = false, ignorePop = false, replaceNext = false;
+  function homeView(){ var l = navFor(role); return l.length ? l[0].id : "dash"; }
+  function paintBack(id){
+    $$(".vback").forEach(function(b){ b.remove(); });
+    if(!id || id === homeView()) return;
+    var head = document.querySelector("#v-" + id + " .view-head");
+    if(!head) return;
+    var b = document.createElement("button");
+    b.className = "vback"; b.type = "button";
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>' + esc(t("c.back"));
+    b.onclick = goBack;
+    head.insertBefore(b, head.firstChild);
+  }
+  function goBack(){
+    if(navStack.length > 1 && history.state && history.state.pv){ history.back(); return; }
+    navStack = []; show(homeView(), true);
+  }
+  window.addEventListener("popstate", function(e){
+    if(ignorePop){ ignorePop = false; return; }
+    if(modalState && !$("#modal").hidden){ poppingModal = true; modalState = false; closeModal(); poppingModal = false; return; }
+    if(navStack.length) navStack.pop();
+  });
+
+  /* ================================================================ monthly report link */  /* ================================================================ monthly report link */
   function reportUrl(memberId){
     return "report.html" + (REAL ? "?player=" + encodeURIComponent(memberId) : "?demo=1");
   }
@@ -3070,6 +3142,7 @@
   }
 
   function modal(html){
+    if(!modalState && $("#modal").hidden){ try{ history.pushState({pv:location.hash.slice(1) || homeView(), modal:1}, "", location.href); modalState = true; }catch(e){} }
     lastFocus = document.activeElement;
     $("#modalBody").innerHTML = html;
     $("#modal").hidden = false;
@@ -3081,8 +3154,15 @@
     $("#modalClose").focus();
   }
 
+  var closingForNav = false;
   function closeModal(){
     if($("#modal").hidden) return;
+    if(modalState && !poppingModal){
+      modalState = false;
+      /* leaving a pop-up for another screen: reuse its history step instead of going back */
+      if(closingForNav){ replaceNext = true; }
+      else { ignorePop = true; try{ history.back(); }catch(e){ ignorePop = false; } }
+    }
     $("#modal").hidden = true;
     document.body.classList.remove("locked");
     document.body.style.top = "";
@@ -3093,7 +3173,9 @@
   }
 
   document.addEventListener("click", function(e){
-    if(e.target.closest("#modalClose") || e.target.id === "modal") closeModal();
+    if(e.target.closest("#modalClose") || e.target.id === "modal"){ closeModal(); return; }
+    var dc = e.target.closest("[data-close]");
+    if(dc && !dc.hasAttribute("data-go") && !dc.hasAttribute("data-ngo")) closeModal();
   });
 
   document.addEventListener("keydown", function(e){
@@ -3155,6 +3237,7 @@
     renderLessons();
     applyTheme();
     renderPlayerCard();
+    compactNotes();
     renderShop2();
     renderAchievements();
     renderFriends();

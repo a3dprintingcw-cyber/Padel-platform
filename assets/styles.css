@@ -1328,3 +1328,66 @@ body.sb-open .sheet{max-width:560px}
 .regdone-ic{width:56px;height:56px;border-radius:50%;background:var(--coral);color:#0B0D0F;display:grid;place-items:center;font-size:28px;font-weight:700}
 .regdone h2{margin:0;font-family:var(--f-display);font-size:34px;text-transform:uppercase}
 .regdone p{margin:0}
+
+/* ============================================================
+   Compact pass: tighter, cleaner screens on phones
+   ============================================================ */
+.pslides{align-items:flex-start;transition:height .25s ease}
+.pslide{align-items:flex-start}
+.notes-more{margin-top:4px}
+#notesList.collapsed .note:nth-child(n+2){display:none}
+.vback{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px -4px;padding:6px 10px 6px 6px;border-radius:100px;font-size:13.5px;font-weight:600;color:var(--muted);border:1px solid var(--line)}
+.vback:hover{color:var(--text)}
+.vback svg{width:16px;height:16px}
+
+@media (max-width:680px){
+  .main{padding:16px 14px 104px}
+  .view-head{margin-bottom:14px}
+  .view-head h2{font-size:24px}
+  .view-head p{font-size:13px;line-height:1.4}
+  .card{padding:14px}
+  .card-hd{margin-bottom:10px}
+  .card-hd h3{font-size:15px}
+  .stack{margin-top:12px}
+  .stack-b{margin-bottom:12px}
+  .two{gap:12px}
+  .tiles{gap:8px;margin-bottom:12px}
+  .tile{padding:12px}
+  .tile .val{font-size:24px}
+
+  /* shots: a tidy 2-column grid instead of nine tall cards */
+  .skills{grid-template-columns:1fr 1fr;gap:8px}
+  .skill{padding:11px 12px}
+  .skill-es,.skill-cue{display:none}
+  .skill-name{font-size:13px}
+  .skill-score{font-size:22px}
+  .skill-score small{font-size:10px}
+  .skill .track{margin-top:8px}
+  .skill-foot{margin-top:6px;font-size:10.5px}
+  .skill-foot span:last-child{display:none}
+
+  /* radar and body map fit the screen */
+  #radar svg{max-height:260px;width:100%}
+  .bmap{grid-template-columns:120px 1fr;gap:10px;align-items:start}
+  .bfig svg{max-height:200px}
+  .bcap .bk{font-size:16px}
+  .bcap .bv{font-size:24px}
+  .brow{padding:4px 6px}
+  .bn{font-size:12px}
+  .bs{font-size:16px}
+
+  .pcard{width:240px}
+  .pc-ovr b{font-size:44px}
+  .pc-name{font-size:19px;margin-top:10px}
+  .pc-stats{margin:12px 4px 10px;gap:6px 14px}
+  .pc-stats b{font-size:20px}
+  .note{margin-bottom:10px}
+  .note p{font-size:13.5px}
+  .fgoal{padding:9px 0}
+  .lv-actions{gap:6px;margin-top:12px}
+  .lv-actions .btn{padding:8px 12px}
+  .chal-list{gap:9px}
+  .sess{padding:12px 14px}
+  .feed .fitem{padding:8px 0}
+  .pp-qr{width:96px;height:96px}
+}
