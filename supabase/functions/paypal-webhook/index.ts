@@ -8,7 +8,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 const ENV = Deno.env.get("PAYPAL_ENV") === "live" ? "live" : "sandbox";
 const API = ENV === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 
-const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+// newer projects hand functions their secret keys as JSON; older ones as SUPABASE_SERVICE_ROLE_KEY
+function serverKey(): string {
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (legacy) return legacy;
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}");
+    return keys.default || (Object.values(keys)[0] as string) || "";
+  } catch { return ""; }
+}
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, serverKey(), {
   auth: { persistSession: false },
 });
 
