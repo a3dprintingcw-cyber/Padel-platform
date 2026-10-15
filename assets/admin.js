@@ -12,6 +12,8 @@
   function oops(e){ toast((e && e.message) || "Something went wrong"); console.warn(e); }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
   var PLANS = (window.PP && window.PP.PLANS) || [];
+  /* a plan's monthly price in the club's country (price levels live in clubs.js) */
+  function priceIn(p, cc){ return (window.PP && window.PP.priceFor && cc) ? window.PP.priceFor(p.id, cc) : p.price; }
 
   /* Demo club admin (admin.html?demo=1): sample data, nothing is saved. For sales visits. */
   var DEMO = PAGE === "admin" && new URLSearchParams(location.search).get("demo") === "1";
@@ -79,8 +81,13 @@
       rSel.innerHTML = (c ? c.regions : []).map(function(r){ return '<option>'+esc(r)+'</option>'; }).join("");
     }
     cSel.onchange = fillRegions; fillRegions();
-    $("#ncPlan").innerHTML = PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+' · '+money(p.price)+'/mo</option>'; }).join("");
-    $("#ncPlan").value = "club";
+    var ncPlans = function(){
+      var keep = $("#ncPlan").value || "club", cc = $("#ncCountry") && $("#ncCountry").value;
+      $("#ncPlan").innerHTML = PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+' · '+money(priceIn(p, cc))+'/mo</option>'; }).join("");
+      $("#ncPlan").value = keep;
+    };
+    ncPlans();
+    if($("#ncCountry")) $("#ncCountry").addEventListener("change", ncPlans);
 
     $("#newClub").onsubmit = async function(e){
       e.preventDefault();
@@ -123,7 +130,7 @@
       return leadFilter === "all" || (leadFilter === "open" ? (l.status !== "won" && l.status !== "lost") : l.status === leadFilter);
     }).sort(function(a,b){ return (a.follow_up || "9999") < (b.follow_up || "9999") ? -1 : 1; });
     box.innerHTML = list.length ? list.map(function(l){
-      var plan = window.PP ? window.PP.planFor(l.players) : null;
+      var plan = window.PP ? window.PP.planFor(l.players, l.country) : null;
       var c = window.PP ? window.PP.country(l.country) : null;
       var due = l.follow_up && l.follow_up <= today && l.status !== "won" && l.status !== "lost";
       var wa = l.phone ? "https://wa.me/" + String(l.phone).replace(/[^0-9]/g, "") : "";
@@ -153,7 +160,7 @@
       if(!l || !fm) return;
       fm.name.value = l.club_name || ""; fm.city.value = l.city || ""; fm.ownerName.value = l.contact || ""; fm.owner.value = l.email || "";
       if(l.country){ $("#ncCountry").value = l.country; $("#ncCountry").onchange(); if(l.region) $("#ncRegion").value = l.region; }
-      if(window.PP) $("#ncPlan").value = window.PP.planFor(l.players).id;
+      if(window.PP) $("#ncPlan").value = window.PP.planFor(l.players, l.country).id;
       fm.dataset.lead = l.id;
       $("#newClubCard").scrollIntoView({behavior:"smooth", block:"start"});
       toast("Filled in from the lead. Check it and tap Create club.");
@@ -178,7 +185,7 @@
         if(m.role === "owner") owner[m.club_id] = m.email + (m.status === "invited" ? " (not signed in yet)" : "");
       });
       var mrr = clubs.filter(function(c){ return c.status === "active"; }).reduce(function(t, c){
-        var p = PLANS.filter(function(x){ return x.id === c.plan; })[0]; return t + (p ? p.price : 0); }, 0);
+        var p = PLANS.filter(function(x){ return x.id === c.plan; })[0]; return t + (p ? priceIn(p, c.country) : 0); }, 0);
       $("#kpis").innerHTML =
         kpi(clubs.length, "Clubs") + kpi(clubs.filter(function(c){ return c.status === "active"; }).length, "Paying") +
         kpi(money(mrr), "Monthly revenue") + kpi(mem.filter(function(m){ return m.role === "player"; }).length, "Players");
@@ -572,7 +579,7 @@
     var b = CLUB.billing_status || "none";
     var contact = window.PP ? window.PP.waLink("Hi, I'd like to pay for Padel Vitals for " + CLUB.name + ".") : "#";
     var html = '<div class="card-hd"><h3>'+esc(plan.name)+' plan</h3>'+billChip(b)+'</div>'+
-      '<p class="bill-price"><b>'+money(plan.price)+'</b> per month · '+esc(plan.who)+'</p>';
+      '<p class="bill-price"><b>'+money(priceIn(plan, CLUB.country))+'</b> per month · '+esc(plan.who)+'</p>';
     if(b === "active"){
       html += '<p class="muted small">Paid by PayPal'+(CLUB.paid_until ? '. Next payment around '+new Date(CLUB.paid_until).toLocaleDateString() : '')+'.</p>'+
         '<a class="btn btn-ghost btn-sm" href="https://www.paypal.com/myaccount/autopay/" target="_blank" rel="noopener">Manage in PayPal</a>';

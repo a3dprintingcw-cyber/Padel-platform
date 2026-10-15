@@ -27,6 +27,27 @@ window.PP = (function(){
      perks:[["Everything in Academy"],["Your own branded app: your club's name and icon on every player's phone", true],["AI training plan for every player, built from the coach ratings", true],["Owner dashboard: retention, revenue per coach, players about to leave", true],["Match video analysis with every shot tagged", true],["Multiple locations under one club", true],["Connects to your booking system", true],["First right on the regions next to yours"],["Coach education day at your club"],["Your own account manager"],["Early access to every new feature"]]}
   ];
 
+
+  /* Prices by country. Each level follows what a padel court earns per hour there,
+     compared with the US (about $80 at a typical club):
+     A  US, Canada, Gulf, Switzerland ............ courts about $70 to $140 an hour
+     B  UK, Northern Europe, France, Australia ... about $45 to $70, roughly 75% of US
+     C  Italy, Portugal, Mexico, Brazil, Caribbean  about $30 to $45, roughly half
+     D  Spain, Colombia, Argentina, Chile, rest .. about $15 to $30, roughly a third */
+  var LEVELS = {
+    A: {starter:599, club:999, academy:1699, flagship:2799},
+    B: {starter:449, club:749, academy:1249, flagship:1999},
+    C: {starter:299, club:499, academy:849,  flagship:1399},
+    D: {starter:199, club:349, academy:599,  flagship:999}
+  };
+  var LEVEL_OF = {};
+  "US CA AE SA QA KW BH OM CH LU MC SG HK".split(" ").forEach(function(c){ LEVEL_OF[c] = "A"; });
+  "GB IE NL BE DE AT DK SE NO FI IS FR AU NZ JP".split(" ").forEach(function(c){ LEVEL_OF[c] = "B"; });
+  "IT PT MX BR CW AW BQ SX PR BS KY BB TT BM VG VI TC MQ GP".split(" ").forEach(function(c){ LEVEL_OF[c] = "C"; });
+  function levelFor(cc){ return LEVEL_OF[String(cc || "").toUpperCase()] || "D"; }
+  function priceFor(planId, cc){ var l = LEVELS[levelFor(cc || "US")]; return l[planId] != null ? l[planId] : LEVELS.A[planId]; }
+  function plansFor(cc){ return PLANS.map(function(p){ var q = {}; for(var k in p) q[k] = p[k]; q.price = priceFor(p.id, cc); return q; }); }
+
   /* PayPal subscriptions. The client id is public; the secret lives only in Supabase.
      Fill the plan ids after creating the four monthly plans in PayPal. */
   var PAYPAL = {
@@ -35,10 +56,11 @@ window.PP = (function(){
     plans: {starter:"", club:"", academy:"", flagship:""}
   };
 
-  function planFor(players){
+  function planFor(players, cc){
     players = +players || 0;
-    for(var i=0;i<PLANS.length;i++){ if(PLANS[i].max === null || players <= PLANS[i].max) return PLANS[i]; }
-    return PLANS[PLANS.length-1];
+    var list = cc ? plansFor(cc) : PLANS;
+    for(var i=0;i<list.length;i++){ if(list[i].max === null || players <= list[i].max) return list[i]; }
+    return list[list.length-1];
   }
 
   /* ---- edit here as clubs sign ----
@@ -87,5 +109,5 @@ window.PP = (function(){
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
-  return {API:{url:"https://kvdruhadevpixomatwsb.supabase.co", key:LIVE_KEY}, CONTACT:CONTACT, PLANS:PLANS, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
+  return {API:{url:"https://kvdruhadevpixomatwsb.supabase.co", key:LIVE_KEY}, CONTACT:CONTACT, PLANS:PLANS, LEVELS:LEVELS, levelFor:levelFor, priceFor:priceFor, plansFor:plansFor, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
 })();

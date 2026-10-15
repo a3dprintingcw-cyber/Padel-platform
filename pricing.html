@@ -17,7 +17,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
-<link href="assets/styles.css?v=38" rel="stylesheet"/>
+<link href="assets/styles.css?v=39" rel="stylesheet"/>
 </head>
 <body>
 <header class="topbar">
@@ -47,6 +47,7 @@
 <p data-t=""><b>The first club in each region keeps its price for life.</b> As long as you stay, your monthly price never goes up, and nobody else in your region can join.</p>
 </div>
 <div class="pricebar">
+<label class="pcountry" for="priceCountry"><span data-t="">Prices for</span> <select id="priceCountry"></select></label>
 <div aria-label="Billing period" class="seg" role="group">
 <button class="on" data-bill="month" data-t="">Monthly</button>
 <button data-bill="year" data-t="">Yearly, 2 months free</button>
@@ -54,6 +55,7 @@
 </div>
 <div class="grid g4 plans" id="plans"></div>
 <p class="mono" id="billNote" style="font-size:12px;color:var(--muted);margin-top:18px"></p>
+<p class="mono" data-t="" style="font-size:12px;color:var(--muted);margin-top:6px">Prices are set per country, based on what padel clubs earn there.</p>
 <p class="mono" data-t="" style="font-size:12px;color:var(--muted);margin-top:6px">Prices in US dollars, sales tax not included. Your player fees and bar sales stay 100% yours.</p>
 </div>
 </section>
@@ -97,10 +99,10 @@
 </div>
 </footer>
 <div aria-live="polite" class="toast" id="toast" role="status"></div>
-<script src="assets/regions.js?v=38"></script>
-<script src="assets/clubs.js?v=38"></script>
-<script src="assets/site-i18n.js?v=38"></script>
-<script src="assets/site.js?v=38"></script>
-<script src="assets/sales.js?v=38"></script>
+<script src="assets/regions.js?v=39"></script>
+<script src="assets/clubs.js?v=39"></script>
+<script src="assets/site-i18n.js?v=39"></script>
+<script src="assets/site.js?v=39"></script>
+<script src="assets/sales.js?v=39"></script>
 </body>
 </html>

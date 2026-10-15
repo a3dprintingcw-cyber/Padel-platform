@@ -12,8 +12,14 @@
   var plansEl = $("#plans");
   if(plansEl){
     var yearly = false, picked = (PP.PLANS.filter(function(p){ return p.pick; })[0] || PP.PLANS[0]).id;
+    var pcSel = $("#priceCountry"), qsP = new URLSearchParams(location.search);
+    var pcountry = PP.country((qsP.get("country") || "").toUpperCase()) ? qsP.get("country").toUpperCase() : guessCountry();
+    if(pcSel){
+      countryOptions(pcSel); pcSel.value = pcountry;
+      pcSel.addEventListener("change", function(){ pcountry = pcSel.value; paint(); });
+    }
     var paint = function(){
-      plansEl.innerHTML = PP.PLANS.map(function(p){
+      plansEl.innerHTML = PP.plansFor(pcountry).map(function(p){
         var amt = yearly ? p.price * 10 : p.price, on = p.id === picked;
         return '<div class="plan tier'+(on?" on":"")+(p.id==="flagship"?" top":"")+'" data-plan="'+p.id+'" style="--pc:'+p.color+'" role="button" tabindex="0" aria-pressed="'+on+'">'+
           '<div class="plan-hd"><h3>'+p.name+'</h3>'+(p.badge ? '<span class="tag pc">'+T(p.badge)+'</span>' : '')+'</div>'+
@@ -22,7 +28,7 @@
           (yearly ? '<div class="save">'+T("You save {n}",{n:usd(p.price*2)})+'</div>' : '')+
           '<ul><li class="excl">'+T("Your city or region, nobody else gets it")+'</li>'+
             p.perks.map(function(x){ return '<li>'+T(x[0])+(x[1] ? ' <span class="soon">'+T("Soon")+'</span>' : '')+'</li>'; }).join("")+'</ul>'+
-          '<a class="btn plan-cta" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
+          '<a class="btn plan-cta" href="register.html?plan='+p.id+'&country='+pcountry+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
         '</div>';
       }).join("");
       $("#billNote").textContent = yearly
@@ -52,7 +58,7 @@
       document.querySelectorAll("[data-bill]").forEach(function(x){ x.classList.toggle("on", x === b); });
       paint();
     });
-    document.addEventListener("pv:lang", paint);
+    document.addEventListener("pv:lang", function(){ if(pcSel){ countryOptions(pcSel); pcSel.value = pcountry; } paint(); });
     paint();
   }
 
@@ -142,9 +148,14 @@
       showState();
     };
 
-    plSel.innerHTML = PP.PLANS.map(function(p){
-      return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>';
-    }).join("");
+    var planOptions = function(){
+      var keep = plSel.value;
+      plSel.innerHTML = PP.plansFor(coSel.value).map(function(p){
+        return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>';
+      }).join("");
+      if(keep) plSel.value = keep;
+    };
+    planOptions();
     if(qs.get("plan")) plSel.value = qs.get("plan");
     if(qs.get("billing") === "year") form.billing.value = "Yearly";
 
@@ -163,7 +174,7 @@
                     : T("{place} is taken.", {place:where});
     };
     var showPlan = function(){
-      var n = +$("#regPlayers").value, fit = n ? PP.planFor(n) : null, chosen = PP.PLANS.filter(function(p){ return p.id === plSel.value; })[0];
+      var n = +$("#regPlayers").value, fit = n ? PP.planFor(n, coSel.value) : null, chosen = PP.plansFor(coSel.value).filter(function(p){ return p.id === plSel.value; })[0];
       if(fit && !planTouched){ plSel.value = fit.id; chosen = fit; }
       var m = $("#planMsg");
       if(!n){ m.textContent = ""; return; }
@@ -171,7 +182,7 @@
         ? T("{n} players fits {plan}: {price} a month.", {n:n, plan:fit.name, price:usd(fit.price)})
         : T("{n} players usually fits {plan}. You picked {chosen}.", {n:n, plan:fit.name, chosen:chosen.name});
     };
-    coSel.addEventListener("change", function(){ fillRegions(""); });
+    coSel.addEventListener("change", function(){ fillRegions(""); planOptions(); showPlan(); });
     stSel.addEventListener("change", showState);
     $("#regPlayers").addEventListener("input", showPlan);
     fillRegions(qs.get("region") || "");
@@ -179,12 +190,11 @@
     document.addEventListener("pv:lang", function(){
       var keepPlan = plSel.value, keepRegion = stSel.value;
       countryOptions(coSel); fillRegions(keepRegion);
-      plSel.innerHTML = PP.PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>'; }).join("");
-      plSel.value = keepPlan; showPlan();
+      plSel.value = keepPlan; planOptions(); plSel.value = keepPlan; showPlan();
     });
 
     var message = function(){
-      var f = form, plan = PP.PLANS.filter(function(p){ return p.id === f.plan.value; })[0];
+      var f = form, plan = PP.plansFor(coSel.value).filter(function(p){ return p.id === f.plan.value; })[0];
       var c = PP.country(coSel.value);
       return [
         "New club registration",

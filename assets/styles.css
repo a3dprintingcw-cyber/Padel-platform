@@ -1391,3 +1391,6 @@ body.sb-open .sheet{max-width:560px}
   .feed .fitem{padding:8px 0}
   .pp-qr{width:96px;height:96px}
 }
+
+.pcountry{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pcountry select{font-family:var(--f-body,inherit);font-size:14px;letter-spacing:0;text-transform:none;color:var(--text);background:var(--court,#171A1E);border:1px solid var(--line);border-radius:10px;padding:7px 10px;max-width:220px}
