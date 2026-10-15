@@ -590,8 +590,8 @@
       if(cfg.clientId && planId){
         html += '<p class="muted small">Pay monthly with PayPal or a card. Cancel any time from your PayPal account.</p><div id="ppButtons" class="pp-buttons"></div>';
       } else {
-        html += '<p class="muted small">Online payment opens soon. To start paying now, message us and we send you an invoice.</p>'+
-          '<a class="btn btn-primary btn-sm" href="'+contact+'" target="_blank" rel="noopener">Message us on WhatsApp</a>';
+        html += '<p class="muted small">Your first month is free. To set up billing, message us and we send your invoice with a secure card payment link.</p>'+
+          '<a class="btn btn-primary btn-sm" href="'+contact+'" target="_blank" rel="noopener">Set up billing</a>';
       }
     }
     html += '<p class="muted small bill-change">Want a different plan? <a class="coral" href="'+contact+'" target="_blank" rel="noopener">Tell us</a> and we switch it the same day.</p>';
