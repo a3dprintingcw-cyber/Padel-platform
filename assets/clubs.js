@@ -32,8 +32,10 @@ window.PP = (function(){
      compared with the US (about $80 at a typical club):
      A  US, Canada, Gulf, Switzerland ............ courts about $70 to $140 an hour
      B  UK, Northern Europe, France, Australia ... about $45 to $70, roughly 75% of US
+        Spain sits here too: courts are cheaper, but each province is exclusive in the
+        world's biggest padel market, which is worth more to a club than the court rate shows.
      C  Italy, Portugal, Mexico, Brazil, Caribbean  about $30 to $45, roughly half
-     D  Spain, Colombia, Argentina, Chile, rest .. about $15 to $30, roughly a third */
+     D  Colombia, Argentina, Chile, rest ....... .. about $15 to $30, roughly a third */
   var LEVELS = {
     A: {starter:599, club:999, academy:1699, flagship:2799},
     B: {starter:449, club:749, academy:1249, flagship:1999},
@@ -42,7 +44,7 @@ window.PP = (function(){
   };
   var LEVEL_OF = {};
   "US CA AE SA QA KW BH OM CH LU MC SG HK".split(" ").forEach(function(c){ LEVEL_OF[c] = "A"; });
-  "GB IE NL BE DE AT DK SE NO FI IS FR AU NZ JP".split(" ").forEach(function(c){ LEVEL_OF[c] = "B"; });
+  "GB IE NL BE DE AT DK SE NO FI IS FR AU NZ JP ES".split(" ").forEach(function(c){ LEVEL_OF[c] = "B"; });
   "IT PT MX BR CW AW BQ SX PR BS KY BB TT BM VG VI TC MQ GP".split(" ").forEach(function(c){ LEVEL_OF[c] = "C"; });
   function levelFor(cc){ return LEVEL_OF[String(cc || "").toUpperCase()] || "D"; }
   function priceFor(planId, cc){ var l = LEVELS[levelFor(cc || "US")]; return l[planId] != null ? l[planId] : LEVELS.A[planId]; }
