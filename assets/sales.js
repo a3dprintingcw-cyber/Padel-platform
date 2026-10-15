@@ -8,16 +8,15 @@
   /* translate a built string; site-i18n.js supplies window.pvT, English if missing */
   function T(s, vars){ return window.pvT ? window.pvT(s, vars) : (vars ? s.replace(/\{(\w+)\}/g, function(_, k){ return vars[k]; }) : s); }
 
+  /* the visitor's region, chosen once on the first visit (region.js) */
+  function siteCountry(){ return (window.pvCountry && window.pvCountry()) || "US"; }
+
   /* ---------------------------------------------------------------- pricing */
   var plansEl = $("#plans");
   if(plansEl){
     var yearly = false, picked = (PP.PLANS.filter(function(p){ return p.pick; })[0] || PP.PLANS[0]).id;
-    var pcSel = $("#priceCountry"), qsP = new URLSearchParams(location.search);
-    var pcountry = PP.country((qsP.get("country") || "").toUpperCase()) ? qsP.get("country").toUpperCase() : guessCountry();
-    if(pcSel){
-      countryOptions(pcSel); pcSel.value = pcountry;
-      pcSel.addEventListener("change", function(){ pcountry = pcSel.value; paint(); });
-    }
+    var pcountry = siteCountry();
+    document.addEventListener("pv:country", function(){ pcountry = siteCountry(); paint(); });
     var paint = function(){
       plansEl.innerHTML = PP.plansFor(pcountry).map(function(p){
         var amt = yearly ? p.price * 10 : p.price, on = p.id === picked;
@@ -28,7 +27,7 @@
           (yearly ? '<div class="save">'+T("You save {n}",{n:usd(p.price*2)})+'</div>' : '')+
           '<ul><li class="excl">'+T("Your city or region, nobody else gets it")+'</li>'+
             p.perks.map(function(x){ return '<li>'+T(x[0])+(x[1] ? ' <span class="soon">'+T("Soon")+'</span>' : '')+'</li>'; }).join("")+'</ul>'+
-          '<a class="btn plan-cta" href="register.html?plan='+p.id+'&country='+pcountry+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
+          '<a class="btn plan-cta" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
         '</div>';
       }).join("");
       $("#billNote").textContent = yearly
@@ -58,7 +57,7 @@
       document.querySelectorAll("[data-bill]").forEach(function(x){ x.classList.toggle("on", x === b); });
       paint();
     });
-    document.addEventListener("pv:lang", function(){ if(pcSel){ countryOptions(pcSel); pcSel.value = pcountry; } paint(); });
+    document.addEventListener("pv:lang", paint);
     paint();
   }
 
@@ -92,7 +91,7 @@
     var qs0 = new URLSearchParams(location.search);
     var cSel = $("#stateCountry");
     countryOptions(cSel);
-    cSel.value = PP.country(qs0.get("country") || "") ? qs0.get("country") : guessCountry();
+    cSel.value = PP.country(qs0.get("country") || "") ? qs0.get("country") : siteCountry();
 
     var drawStates = function(){
       var q = ($("#stateFind").value || "").trim().toLowerCase();
@@ -131,7 +130,7 @@
     var coSel = $("#regCountry"), stSel = $("#regState"), plSel = $("#regPlan");
 
     countryOptions(coSel);
-    coSel.value = PP.country(qs.get("country") || "") ? qs.get("country") : guessCountry();
+    coSel.value = PP.country(qs.get("country") || "") ? qs.get("country") : siteCountry();
 
     var fillRegions = function(keep){
       var c = PP.country(coSel.value), list = PP.regions(c.code);
@@ -150,7 +149,7 @@
 
     var planOptions = function(){
       var keep = plSel.value;
-      plSel.innerHTML = PP.plansFor(coSel.value).map(function(p){
+      plSel.innerHTML = PP.plansFor(siteCountry()).map(function(p){
         return '<option value="'+p.id+'">'+p.name+', '+usd(p.price)+' / '+T("month")+'</option>';
       }).join("");
       if(keep) plSel.value = keep;
@@ -174,7 +173,7 @@
                     : T("{place} is taken.", {place:where});
     };
     var showPlan = function(){
-      var n = +$("#regPlayers").value, fit = n ? PP.planFor(n, coSel.value) : null, chosen = PP.plansFor(coSel.value).filter(function(p){ return p.id === plSel.value; })[0];
+      var n = +$("#regPlayers").value, fit = n ? PP.planFor(n, siteCountry()) : null, chosen = PP.plansFor(siteCountry()).filter(function(p){ return p.id === plSel.value; })[0];
       if(fit && !planTouched){ plSel.value = fit.id; chosen = fit; }
       var m = $("#planMsg");
       if(!n){ m.textContent = ""; return; }
@@ -182,7 +181,8 @@
         ? T("{n} players fits {plan}: {price} a month.", {n:n, plan:fit.name, price:usd(fit.price)})
         : T("{n} players usually fits {plan}. You picked {chosen}.", {n:n, plan:fit.name, chosen:chosen.name});
     };
-    coSel.addEventListener("change", function(){ fillRegions(""); planOptions(); showPlan(); });
+    coSel.addEventListener("change", function(){ fillRegions(""); });
+    document.addEventListener("pv:country", function(e){ coSel.value = e.detail; fillRegions(""); planOptions(); showPlan(); });
     stSel.addEventListener("change", showState);
     $("#regPlayers").addEventListener("input", showPlan);
     fillRegions(qs.get("region") || "");
@@ -194,7 +194,7 @@
     });
 
     var message = function(){
-      var f = form, plan = PP.plansFor(coSel.value).filter(function(p){ return p.id === f.plan.value; })[0];
+      var f = form, plan = PP.plansFor(siteCountry()).filter(function(p){ return p.id === f.plan.value; })[0];
       var c = PP.country(coSel.value);
       return [
         "New club registration",

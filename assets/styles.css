@@ -1394,3 +1394,16 @@ body.sb-open .sheet{max-width:560px}
 
 .pcountry{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .pcountry select{font-family:var(--f-body,inherit);font-size:14px;letter-spacing:0;text-transform:none;color:var(--text);background:var(--court,#171A1E);border:1px solid var(--line);border-radius:10px;padding:7px 10px;max-width:220px}
+
+.region-gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));background:rgba(5,7,8,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.rg-open,.rg-open body{overflow:hidden}
+.rg-card{width:min(420px,100%);background:var(--court,#171A1E);border:1px solid var(--line);border-radius:22px;padding:28px 24px;display:grid;gap:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.rg-mark{width:26px;height:39px;color:var(--text)}
+.rg-mark svg{width:100%;height:100%}
+.rg-card h2{font-family:var(--f-display,Anton,Impact,sans-serif);font-weight:400;font-size:34px;line-height:1;text-transform:uppercase;margin:6px 0 0}
+.rg-card p{margin:0;color:var(--muted);font-size:15px}
+.rg-label{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.rg-card select{width:100%;font-size:16px;color:var(--text);background:var(--ink,#0B0D0F);border:1px solid var(--line);border-radius:12px;padding:12px}
+.rg-go{width:100%;justify-content:center;margin-top:6px}
+.region-chip{background:none;border:1px solid var(--line);border-radius:100px;padding:4px 12px;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.region-chip:hover{color:var(--text)}
