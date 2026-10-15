@@ -20,7 +20,7 @@
           '<div class="who">'+T(p.who)+'</div>'+
           '<div class="amt">'+usd(amt)+' <small>/ '+(yearly?T("year"):T("month"))+'</small></div>'+
           (yearly ? '<div class="save">'+T("You save {n}",{n:usd(p.price*2)})+'</div>' : '')+
-          '<ul><li class="excl">'+T("Your whole state or region, nobody else gets it")+'</li>'+
+          '<ul><li class="excl">'+T("Your city or region, nobody else gets it")+'</li>'+
             p.perks.map(function(x){ return '<li>'+T(x[0])+(x[1] ? ' <span class="soon">'+T("Soon")+'</span>' : '')+'</li>'; }).join("")+'</ul>'+
           '<a class="btn plan-cta" href="register.html?plan='+p.id+(yearly?"&billing=year":"")+'">'+T("Choose {plan}",{plan:p.name})+'</a>'+
         '</div>';
