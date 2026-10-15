@@ -44,3 +44,24 @@ window.PV_REGIONS = (function(){
 
   return COUNTRIES;
 })();
+
+/* Parts of the world. Visitors pick one on their first visit, and each has one price level
+   (see clubs.js). Every country belongs to exactly one. */
+window.PV_ZONES = (function(){
+  var Z = [
+    {id:"NA", name:"North America",             level:"A", rep:"US"},
+    {id:"LA", name:"Latin America & Caribbean", level:"D", rep:"CO"},
+    {id:"EU", name:"Europe",                    level:"B", rep:"ES"},
+    {id:"ME", name:"Middle East",               level:"A", rep:"AE"},
+    {id:"AS", name:"Asia & Pacific",            level:"B", rep:"AU"},
+    {id:"AF", name:"Africa",                    level:"D", rep:"ZA"}
+  ];
+  var M = {};
+  "AD AL AT BA BE BG BY CH CY CZ DE DK EE ES FI FR GB GI GR HR HU IE IS IT LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS RU SE SI SK SM TR UA".split(" ").forEach(function(c){ M[c] = "EU"; });
+  "AE BH IL IQ IR JO KW LB OM QA SA YE".split(" ").forEach(function(c){ M[c] = "ME"; });
+  "AF AM AU AZ BD BN BT CN FJ GE HK ID IN JP KG KH KR KZ LA LK MM MN MO MV MY NP NZ PG PH PK SG TH TJ TM TW UZ VN".split(" ").forEach(function(c){ M[c] = "AS"; });
+  "AG AR AW BB BM BO BQ BR BS BZ CL CO CR CU CW DM DO EC GD GT GY HN HT JM KN KY LC MX NI PA PE PY SR SV SX TC TT UY VC VE".split(" ").forEach(function(c){ M[c] = "LA"; });
+  "AO BF BI BJ BW CD CF CG CI CM CV DJ DZ EG ER ET GA GH GM GN GQ KE LR LS LY MA MG ML MR MU MW MZ NA NE NG RW SC SD SL SN SO SZ TD TG TN TZ UG ZA ZM ZW".split(" ").forEach(function(c){ M[c] = "AF"; });
+  "CA GL US".split(" ").forEach(function(c){ M[c] = "NA"; });
+  return {list:Z, of:function(cc){ return M[String(cc || "").toUpperCase()] || null; }, get:function(id){ return Z.filter(function(z){ return z.id === id; })[0] || null; }};
+})();

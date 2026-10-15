@@ -42,11 +42,12 @@ window.PP = (function(){
     C: {starter:299, club:499, academy:849,  flagship:1399},
     D: {starter:199, club:349, academy:599,  flagship:999}
   };
-  var LEVEL_OF = {};
-  "US CA AE SA QA KW BH OM CH LU MC SG HK".split(" ").forEach(function(c){ LEVEL_OF[c] = "A"; });
-  "GB IE NL BE DE AT DK SE NO FI IS FR AU NZ JP ES".split(" ").forEach(function(c){ LEVEL_OF[c] = "B"; });
-  "IT PT MX BR CW AW BQ SX PR BS KY BB TT BM VG VI TC MQ GP".split(" ").forEach(function(c){ LEVEL_OF[c] = "C"; });
-  function levelFor(cc){ return LEVEL_OF[String(cc || "").toUpperCase()] || "D"; }
+  /* each part of the world has one level (regions.js, PV_ZONES):
+     North America A, Middle East A, Europe B, Asia & Pacific B, Latin America & Caribbean D, Africa D */
+  function levelFor(cc){
+    var Z = window.PV_ZONES, z = Z && Z.get(Z.of(cc));
+    return z ? z.level : "D";
+  }
   function priceFor(planId, cc){ var l = LEVELS[levelFor(cc || "US")]; return l[planId] != null ? l[planId] : LEVELS.A[planId]; }
   function plansFor(cc){ return PLANS.map(function(p){ var q = {}; for(var k in p) q[k] = p[k]; q.price = priceFor(p.id, cc); return q; }); }
 

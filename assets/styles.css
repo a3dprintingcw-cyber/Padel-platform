@@ -1407,3 +1407,9 @@ body.sb-open .sheet{max-width:560px}
 .rg-go{width:100%;justify-content:center;margin-top:6px}
 .region-chip{background:none;border:1px solid var(--line);border-radius:100px;padding:4px 12px;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
 .region-chip:hover{color:var(--text)}
+
+.rg-zones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.rg-zone{min-height:64px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--ink,#0B0D0F);color:var(--text);font:600 15px var(--f-body,inherit);text-align:left;cursor:pointer;line-height:1.25}
+.rg-zone:hover,.rg-zone:focus-visible{border-color:var(--volt);outline:none}
+.rg-zone.on{border-color:var(--volt)}
+@media (max-width:360px){.rg-zones{grid-template-columns:1fr}}
