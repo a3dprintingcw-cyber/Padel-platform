@@ -49,6 +49,9 @@ window.PP = (function(){
     return z ? z.level : "D";
   }
   function priceFor(planId, cc){ var l = LEVELS[levelFor(cc || "US")]; return l[planId] != null ? l[planId] : LEVELS.A[planId]; }
+  /* Europe sees euros (same numbers), everyone else US dollars */
+  function curFor(cc){ var Z = window.PV_ZONES; return (Z && Z.of(cc || "US") === "EU") ? "EUR" : "USD"; }
+  function fmt(n, cc){ return (curFor(cc) === "EUR" ? "€" : "$") + Number(n).toLocaleString("en-US"); }
   function plansFor(cc){ return PLANS.map(function(p){ var q = {}; for(var k in p) q[k] = p[k]; q.price = priceFor(p.id, cc); return q; }); }
 
   /* PayPal subscriptions. The client id is public; the secret lives only in Supabase.
@@ -112,5 +115,5 @@ window.PP = (function(){
   function waLink(text){ return "https://wa.me/" + CONTACT.whatsapp + "?text=" + encodeURIComponent(text); }
   function mailLink(subject, body){ return "mailto:" + CONTACT.email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); }
 
-  return {API:{url:"https://kvdruhadevpixomatwsb.supabase.co", key:LIVE_KEY}, CONTACT:CONTACT, PLANS:PLANS, LEVELS:LEVELS, levelFor:levelFor, priceFor:priceFor, plansFor:plansFor, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
+  return {API:{url:"https://kvdruhadevpixomatwsb.supabase.co", key:LIVE_KEY}, CONTACT:CONTACT, PLANS:PLANS, LEVELS:LEVELS, levelFor:levelFor, priceFor:priceFor, curFor:curFor, fmt:fmt, plansFor:plansFor, PAYPAL:PAYPAL, COUNTRIES:COUNTRIES, country:country, regions:regions, openCount:openCount, planFor:planFor, waLink:waLink, mailLink:mailLink};
 })();

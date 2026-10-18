@@ -10,7 +10,7 @@
   function toast(m){ if(window.r2toast) window.r2toast(m); }
   function fail(r){ if(r && r.error) throw r.error; return r ? r.data : null; }
   function oops(e){ toast((e && e.message) || "Something went wrong"); console.warn(e); }
-  function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
+  function money(n, cc){ return (window.PP && cc) ? window.PP.fmt(n, cc) : "$" + Number(n).toLocaleString("en-US"); }
   var PLANS = (window.PP && window.PP.PLANS) || [];
   /* a plan's monthly price in the club's country (price levels live in clubs.js) */
   function priceIn(p, cc){ return (window.PP && window.PP.priceFor && cc) ? window.PP.priceFor(p.id, cc) : p.price; }
@@ -83,7 +83,7 @@
     cSel.onchange = fillRegions; fillRegions();
     var ncPlans = function(){
       var keep = $("#ncPlan").value || "club", cc = $("#ncCountry") && $("#ncCountry").value;
-      $("#ncPlan").innerHTML = PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+' · '+money(priceIn(p, cc))+'/mo</option>'; }).join("");
+      $("#ncPlan").innerHTML = PLANS.map(function(p){ return '<option value="'+p.id+'">'+p.name+' · '+money(priceIn(p, cc), cc)+'/mo</option>'; }).join("");
       $("#ncPlan").value = keep;
     };
     ncPlans();
@@ -137,7 +137,7 @@
       return '<div class="arow lead'+(due ? " due" : "")+'"><div class="arow-main">'+
         '<b>'+esc(l.club_name)+'</b><small>'+esc([l.city, l.region, c ? c.name : l.country].filter(Boolean).join(", "))+' · '+new Date(l.created_at).toLocaleDateString()+'</small>'+
         '<small>'+esc(l.contact || "")+(l.email ? ' · <a class="coral" href="mailto:'+esc(l.email)+'">'+esc(l.email)+'</a>' : '')+(wa ? ' · <a class="coral" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a>' : '')+'</small>'+
-        '<small>'+(l.players || 0)+' players · '+(l.coaches || 0)+' coaches'+(plan ? ' · fits '+plan.name+' ('+money(plan.price)+')' : '')+'</small>'+
+        '<small>'+(l.players || 0)+' players · '+(l.coaches || 0)+' coaches'+(plan ? ' · fits '+plan.name+' ('+money(plan.price, l.country)+')' : '')+'</small>'+
         (l.notes ? '<small class="lead-note">“'+esc(l.notes)+'”</small>' : '')+
         '<textarea class="lead-admin" data-lead-notes="'+l.id+'" rows="2" placeholder="Your notes">'+esc(l.admin_notes || "")+'</textarea></div>'+
         '<div class="arow-ctl">'+
@@ -579,7 +579,7 @@
     var b = CLUB.billing_status || "none";
     var contact = window.PP ? window.PP.waLink("Hi, I'd like to pay for Padel Vitals for " + CLUB.name + ".") : "#";
     var html = '<div class="card-hd"><h3>'+esc(plan.name)+' plan</h3>'+billChip(b)+'</div>'+
-      '<p class="bill-price"><b>'+money(priceIn(plan, CLUB.country))+'</b> per month · '+esc(plan.who)+'</p>';
+      '<p class="bill-price"><b>'+money(priceIn(plan, CLUB.country), CLUB.country)+'</b> per month · '+esc(plan.who)+'</p>';
     if(b === "active"){
       html += '<p class="muted small">Paid by PayPal'+(CLUB.paid_until ? '. Next payment around '+new Date(CLUB.paid_until).toLocaleDateString() : '')+'.</p>'+
         '<a class="btn btn-ghost btn-sm" href="https://www.paypal.com/myaccount/autopay/" target="_blank" rel="noopener">Manage in PayPal</a>';

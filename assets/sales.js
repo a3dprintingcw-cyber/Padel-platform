@@ -4,7 +4,7 @@
   var PP = window.PP;
   function $(s){ return document.querySelector(s); }
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-  function usd(n){ return "$" + n.toLocaleString("en-US"); }
+  function usd(n){ return PP.fmt(n, siteCountry()); }
   /* translate a built string; site-i18n.js supplies window.pvT, English if missing */
   function T(s, vars){ return window.pvT ? window.pvT(s, vars) : (vars ? s.replace(/\{(\w+)\}/g, function(_, k){ return vars[k]; }) : s); }
 
