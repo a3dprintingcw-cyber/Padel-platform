@@ -3468,9 +3468,9 @@
     }
     var w = PENDING.waiting;
     bar.innerHTML = '<div class="pend-txt"><b>'+(w ? t("pe.waitTitle", {club:esc(w)}) : t("pe.title"))+'</b>'+
-      '</div>'+
-      '<div class="pend-act"><button class="btn btn-primary pend-go" id="pendFind">'+t("pe.startBtn")+'</button>'+
-      '<button class="btn btn-ghost pend-code" id="pendCode">'+t("pe.haveCode")+'</button></div>';
+      '<p>'+(w ? t("pe.waitBody") : t("pe.body", {email:esc(PENDING.st.user.email)}))+'</p></div>'+
+      '<div class="pend-act"><button class="btn btn-primary btn-sm" id="pendFind">'+t("pe.startBtn")+'</button>'+
+      '<button class="btn btn-ghost btn-sm" id="pendCode">'+t("pe.haveCode")+'</button></div>';
   }
 
   var OPEN_CLUBS = null, HERE = null;
