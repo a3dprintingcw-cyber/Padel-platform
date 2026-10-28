@@ -316,6 +316,48 @@ window.PV = (function(){
     return R2;
   }
 
+  /* signed in, but no club has added this email yet: an empty player account at zero.
+     The screens all work, there is just nothing in them until a club adds the email. */
+  function loadEmpty(){
+    var R2 = window.R2, u = state.user || {};
+    var name = state.googleName || (u.email || "Player");
+    R2.PLAYER = {name:name, initials:initials(name), email:u.email || "", squad:"", days:"", coach:"", first:name.split(/[\s@]/)[0]};
+    R2.SKILLS = SKILLS.map(function(s){ return {n:s.k, es:s.es, v:0, d:0, by:"", on:"", unrated:true}; });
+    R2.RADAR = RADAR_ORDER.map(function(k){ return {k:k, me:0, sq:0}; });
+    if(R2.BODY) R2.BODY.forEach(function(b){ b.v = 0; });
+    R2.SCHEDULE = []; R2.ROSTER = []; R2.COACHES = []; R2.DRILLS = []; R2.SHOP = []; R2.FEED = [];
+    R2.ATT = [0,0,0,0,0,0,0,0,0,0,0,0];
+    R2.EARN = []; R2.HISTORY = {}; R2.GOALS = []; R2.NOTIFS = []; R2.OWNED = []; R2.FRIENDS = [];
+    R2.SEASON = {points:0, drills:0}; R2.NOTES = []; R2.GROUPS = [];
+    R2.ME = {id:null, role:"player", level:0, club:null, equipped:{}, passport:{code:null, on:false}, attendedSeason:0, pending:true};
+    var club = window.r2store.club;
+    club.points = 0; club.drillsDone = []; club.rsvp = {}; club.redemptions = []; club.skillEdits = {};
+    window.r2store.clubPatch({});
+    return R2;
+  }
+
+  /* a place name to map coordinates (OpenStreetMap), remembered on the device */
+  async function geocode(city, region, country){
+    var q = [city, region === "Whole country" ? "" : region, country].filter(Boolean).join(", ");
+    if(!q) return null;
+    var key = "pv.geo." + q.toLowerCase();
+    try{ var c = localStorage.getItem(key); if(c) return JSON.parse(c); }catch(e){}
+    try{
+      var r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q), {headers:{"Accept-Language":"en"}});
+      var j = await r.json();
+      if(!j || !j[0]) return null;
+      var out = {lat:parseFloat(j[0].lat), lng:parseFloat(j[0].lon)};
+      try{ localStorage.setItem(key, JSON.stringify(out)); }catch(e){}
+      return out;
+    }catch(e){ return null; }
+  }
+  function kmBetween(a, b){
+    var R = 6371, d2r = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * d2r, dLng = (b.lng - a.lng) * d2r;
+    var h = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(a.lat*d2r)*Math.cos(b.lat*d2r)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
   /* coach view: who is checked in to each listed session */
   async function loadChecks(){
     var ids = (window.R2.SCHEDULE || []).map(function(s){ return s.id; });
@@ -471,9 +513,11 @@ window.PV = (function(){
     },
     ladder: function(){ return sb.rpc("club_ladder", {p_club:state.club.id}).then(fail); },
     rankings: function(){ return sb.rpc("club_rankings").then(fail); },
+    openClubs: function(){ return sb.rpc("open_clubs").then(fail); },
+    requestTraining: function(club, name, phone, note){ return sb.rpc("request_training", {p_club:club, p_name:name || "", p_phone:phone || "", p_note:note || ""}).then(fail); },
     clubByCode: function(code){ return sb.rpc("club_by_code", {p_code:code}).then(fail); },
     requestJoin: function(code, name){ return sb.rpc("request_join", {p_code:code, p_name:name || ""}).then(fail); },
-    myRequests: function(){ return sb.from("join_requests").select("status, created_at, clubs(name)").eq("status", "pending").then(fail); },
+    myRequests: function(){ return sb.from("join_requests").select("status, created_at, club_id, clubs(name)").eq("status", "pending").then(fail); },
     challenges: function(){ return sb.rpc("my_challenges", {p_club:state.club.id}).then(fail); },
     claimChallenge: function(key){ return sb.rpc("claim_challenge", {p_club:state.club.id, p_key:key}).then(fail); },
     feed: async function(){
@@ -515,7 +559,8 @@ window.PV = (function(){
     SKILLS: SKILLS,
     session: session, signIn: signIn, signInWithGoogle: signInWithGoogle, googleButton: googleButton, signUp: signUp, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
-    whoami: whoami, useClub: useClub, load: load, loadChecks: loadChecks, playerDetail: playerDetail, going: going, drillCounts: drillCounts, roleName: roleName,
+    geocode: geocode, kmBetween: kmBetween,
+    whoami: whoami, useClub: useClub, load: load, loadEmpty: loadEmpty, loadChecks: loadChecks, playerDetail: playerDetail, going: going, drillCounts: drillCounts, roleName: roleName,
     act: act
   };
 })();

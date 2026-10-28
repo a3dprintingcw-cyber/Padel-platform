@@ -277,6 +277,13 @@
   function renderNba(){
     var el = $("#nba");
     if(!el) return;
+    if(PENDING){
+      el.hidden = false; el.dataset.go = "";
+      el.id = "nba";
+      el.innerHTML = '<span class="nba-eye">'+t("d.doNext")+'</span><span class="nba-t">'+esc(t("pe.find"))+'</span>'+
+        '<span class="nba-s">'+esc(t("pe.findSub"))+'</span>';
+      return;
+    }
     var next = D.SCHEDULE[0];
     var cheapest = D.SHOP.reduce(function(a,b){ return b.c < a.c ? b : a; }, D.SHOP[0]);
     var pick;
@@ -1346,7 +1353,7 @@
 
   var logoCache = {};
   function clubLogoUrl(){ return REAL && D.ME && D.ME.club ? (D.ME.club.logo_url || "") : ""; }
-  function clubName(){ return (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent || "Padel Vitals"; }
+  function clubName(){ if(PENDING) return "Padel Vitals"; return (REAL && D.ME && D.ME.club && D.ME.club.name) || $("#acadName").textContent || "Padel Vitals"; }
   function clubColor(){ return (REAL && D.ME && D.ME.club && D.ME.club.color) || "#C8F542"; }
   function loadLogo(){
     var url = clubLogoUrl();
@@ -3392,14 +3399,15 @@
           var r = await PVB.act.requestJoin(jc, st.googleName || "");
           if(r === "member"){ clearJoin(); location.reload(); return true; }
           var cl = await PVB.act.clubByCode(jc);
-          showWaiting(st, cl && cl.name); return true;
+          clearJoin(); enterPending(st, cl && cl.name); return true;
         }catch(err){ clearJoin(); oops(err); }
       }
+      var waiting = null;
       try{
         var reqs = await PVB.act.myRequests();
-        if(reqs && reqs.length){ showWaiting(st, reqs[0].clubs && reqs[0].clubs.name); return true; }
+        if(reqs && reqs.length) waiting = reqs[0].clubs && reqs[0].clubs.name;
       }catch(err){}
-      showNoClub(st); return true;
+      enterPending(st, waiting); return true;
     }
     clearJoin();
     var cst = st.member.clubs && st.member.clubs.status;
@@ -3419,6 +3427,141 @@
     levelUpCheck();
     return true;
   }
+
+  /* ---------------------------------------------------------------- not in a club yet
+     Anyone can sign up. Until a club adds their email (or approves their request) they get
+     the player app at zero with everything locked, a banner saying why, and Find my club to
+     start training somewhere. The app checks in the background and switches on by itself. */
+  var PENDING = null;
+  function enterPending(st, waitingClub){
+    PENDING = {st:st, waiting:waitingClub || ""};
+    document.body.classList.add("pending");
+    var real = PVB.act, keep = {clubByCode:1, requestJoin:1, myRequests:1, openClubs:1, requestTraining:1, setMyName:1};
+    var safe = {};
+    Object.keys(real).forEach(function(k){ safe[k] = keep[k] ? real[k] : function(){ return Promise.resolve(null); }; });
+    PVB.act = safe;
+    PVB.loadEmpty();
+    account = {email: st.user.email, name: st.googleName || st.user.email, initials: D.PLAYER.initials,
+               role:"player", clubRole:"player", real:true, pending:true};
+    closeGate();
+    setRole("player");
+    renderAll(); drawAttendance();
+    if(window.r2figure) window.r2figure.mount();
+    paintPending();
+    var an = $("#acadName"); if(an) an.textContent = t("pe.noClub");
+    var h = location.hash.slice(1);
+    if(h && h.indexOf("access_token") === -1) route(h);
+    if(st.isAdmin) window.r2toast(t("g.platform") + ": platform.html");
+    setInterval(checkActivated, 45000);
+  }
+  function checkActivated(){
+    if(!PENDING || document.hidden) return;
+    PVB.whoami().then(function(st){ if(st && st.member){ window.r2toast(t("pe.active")); setTimeout(function(){ location.reload(); }, 900); } }).catch(function(){});
+  }
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) checkActivated(); });
+
+  function paintPending(){
+    var bar = $("#pendBar");
+    if(!bar){
+      bar = document.createElement("div"); bar.id = "pendBar"; bar.className = "pend-bar";
+      var main = $("#mainStart"); main.insertBefore(bar, main.firstChild);
+    }
+    var w = PENDING.waiting;
+    bar.innerHTML = '<div class="pend-txt"><b>'+(w ? t("pe.waitTitle", {club:esc(w)}) : t("pe.title"))+'</b>'+
+      '<p>'+(w ? t("pe.waitBody") : t("pe.body", {email:esc(PENDING.st.user.email)}))+'</p></div>'+
+      '<div class="pend-act"><button class="btn btn-primary btn-sm" id="pendFind">'+t("pe.find")+'</button>'+
+      '<button class="btn btn-ghost btn-sm" id="pendCode">'+t("pe.haveCode")+'</button></div>';
+  }
+
+  var OPEN_CLUBS = null, HERE = null;
+  function findClub(){
+    modal('<div class="fclub"><h3>'+t("pe.find")+'</h3><p class="muted small">'+t("pe.findSub")+'</p>'+
+      '<label class="field"><span>'+t("pe.search")+'</span><input type="search" id="fcQ" autocomplete="off"></label>'+
+      '<div id="fcList" class="fc-list"><p class="muted small">'+t("pe.loading")+'</p></div></div>');
+    var clubs = OPEN_CLUBS ? Promise.resolve(OPEN_CLUBS) : PVB.act.openClubs().then(function(r){ OPEN_CLUBS = r || []; return OPEN_CLUBS; });
+    var here = HERE ? Promise.resolve(HERE) : new Promise(function(ok){
+      if(!navigator.geolocation) return ok(null);
+      navigator.geolocation.getCurrentPosition(function(p){ HERE = {lat:p.coords.latitude, lng:p.coords.longitude}; ok(HERE); },
+        function(){ ok(null); }, {timeout:8000, maximumAge:6e5});
+    });
+    Promise.all([clubs, here]).then(async function(r){
+      var list = r[0], at = r[1];
+      if(at){
+        /* clubs saved before locations existed: look their city up once on this phone */
+        for(var i=0; i<list.length; i++){
+          var c = list[i];
+          if(c.lat == null){ var g = await PVB.geocode(c.city, c.region, c.country); if(g){ c.lat = g.lat; c.lng = g.lng; } }
+          c.km = c.lat != null ? PVB.kmBetween(at, {lat:c.lat, lng:c.lng}) : null;
+        }
+        list.sort(function(a,b){ return (a.km == null ? 1e9 : a.km) - (b.km == null ? 1e9 : b.km); });
+      }
+      paintClubs(at);
+    }).catch(function(err){ var el = $("#fcList"); if(el) el.innerHTML = '<p class="empty">'+t("pe.noClubs")+'</p>'; console.warn(err); });
+  }
+  function paintClubs(at){
+    var el = $("#fcList");
+    if(!el) return;
+    var q = (($("#fcQ") || {}).value || "").trim().toLowerCase();
+    var list = (OPEN_CLUBS || []).filter(function(c){ return !q || [c.name, c.city, c.region, c.country].join(" ").toLowerCase().indexOf(q) !== -1; });
+    el.innerHTML = (at === null && !HERE ? '<p class="muted small">'+t("pe.noLoc")+'</p>' : '')+
+      (list.length ? list.map(function(c){
+        var where = [c.city, c.region === "Whole country" ? "" : c.region, c.country].filter(Boolean).join(", ");
+        var km = c.km != null ? (c.km < 10 ? c.km.toFixed(1) : Math.round(c.km)) + " km" : "";
+        return '<button class="fc-row" data-fclub="'+c.id+'">'+
+          (c.logo_url ? '<img src="'+esc(c.logo_url)+'" alt="">' : '<i>'+esc(initialsOf(c.name))+'</i>')+
+          '<span><b>'+esc(c.name)+'</b><small>'+esc(where)+'</small></span>'+(km ? '<em>'+km+'</em>' : '')+'</button>';
+      }).join("") : '<p class="empty">'+t("pe.noClubs")+'</p>');
+  }
+  function trainForm(id){
+    var c = (OPEN_CLUBS || []).filter(function(x){ return x.id === id; })[0];
+    if(!c) return;
+    modal('<div class="fclub"><div class="eyebrow">'+t("pe.startAt")+'</div><h3>'+esc(c.name)+'</h3>'+
+      '<p class="muted small">'+t("pe.formSub")+'</p>'+
+      '<label class="field"><span>'+t("pe.name")+'</span><input id="tfName" maxlength="120" value="'+esc(account.name && account.name.indexOf("@") === -1 ? account.name : "")+'"></label>'+
+      '<label class="field"><span>'+t("pe.phone")+'</span><input id="tfPhone" type="tel" inputmode="tel" maxlength="40" placeholder="+1 305 555 0142"></label>'+
+      '<label class="field"><span>'+t("pe.level")+'</span><select id="tfLevel">'+
+        [["pe.lv0","Never played"],["pe.lv1","Beginner"],["pe.lv2","Intermediate"],["pe.lv3","Advanced"]].map(function(k){ return '<option value="'+k[1]+'">'+t(k[0])+'</option>'; }).join("")+'</select></label>'+
+      '<label class="field"><span>'+t("pe.note")+'</span><input id="tfNote" maxlength="200" placeholder="'+esc(t("pe.notePh"))+'"></label>'+
+      '<button class="btn btn-primary" id="tfGo" data-club="'+c.id+'">'+t("pe.send")+'</button></div>');
+  }
+  /* everything that would change something is locked until a club adds you */
+  document.addEventListener("click", function(e){
+    if(!PENDING) return;
+    if(e.target.closest("#pendFind") || e.target.closest("#nba") || e.target.closest("#switchBtn")){
+      e.preventDefault(); e.stopImmediatePropagation(); findClub(); return;
+    }
+    if(e.target.closest("#pendCode")){
+      var code = (window.prompt(t("pe.codeQ")) || "").trim().toUpperCase();
+      if(!/^[A-Z0-9]{4,12}$/.test(code)) return;
+      PVB.act.requestJoin(code, account.name || "").then(function(r){
+        if(r === "member"){ location.reload(); return; }
+        return PVB.act.clubByCode(code).then(function(cl){ PENDING.waiting = (cl && cl.name) || code; paintPending(); window.r2toast(t("pe.sent")); });
+      }).catch(oops);
+      return;
+    }
+    var fr = e.target.closest("[data-fclub]");
+    if(fr){ trainForm(fr.dataset.fclub); return; }
+    var go = e.target.closest("#tfGo");
+    if(go){
+      var phone = ($("#tfPhone").value || "").trim(), name = ($("#tfName").value || "").trim();
+      if(phone.replace(/[^0-9]/g, "").length < 7){ $("#tfPhone").focus(); window.r2toast(t("pe.needPhone")); return; }
+      var note = [$("#tfLevel").value, ($("#tfNote").value || "").trim()].filter(Boolean).join(". ");
+      var c = (OPEN_CLUBS || []).filter(function(x){ return x.id === go.dataset.club; })[0];
+      go.disabled = true;
+      PVB.act.requestTraining(go.dataset.club, name, phone, note).then(function(r){
+        if(r === "member"){ location.reload(); return; }
+        if(name && name !== account.name){ PVB.act.setMyName(name).catch(function(){}); }
+        closeModal(); PENDING.waiting = c ? c.name : ""; paintPending(); window.r2toast(t("pe.sent"));
+      }).catch(function(err){ go.disabled = false; oops(err); });
+      return;
+    }
+    if(e.target.closest("#pendBar, #modal, #gate, [data-go], #moreTab, #navAvatar, #accOut, [data-lang], [data-close], [data-mtab], .seg, .tabbtn, .navbtn")) return;
+    if(e.target.closest(".btn, [data-rsvp], [data-mjoin], [data-buy], [data-redeem]")){
+      e.preventDefault(); e.stopImmediatePropagation();
+      window.r2toast(t("pe.locked"));
+    }
+  }, true);
+  document.addEventListener("input", function(e){ if(e.target.id === "fcQ") paintClubs(HERE); });
 
   function showNoClub(st){
     openGate();

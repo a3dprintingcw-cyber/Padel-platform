@@ -1413,3 +1413,22 @@ body.sb-open .sheet{max-width:560px}
 .rg-zone:hover,.rg-zone:focus-visible{border-color:var(--volt);outline:none}
 .rg-zone.on{border-color:var(--volt)}
 @media (max-width:360px){.rg-zones{grid-template-columns:1fr}}
+
+/* not in a club yet: the banner on top of the app and Find my club */
+.pend-bar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--coral-dim);border:1px solid rgba(200,245,66,.45);border-radius:var(--r);padding:14px 16px;margin:0 0 18px}
+.pend-txt{flex:1 1 260px;min-width:0}
+.pend-txt b{display:block;font-size:15px;margin-bottom:3px}
+.pend-txt p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
+.pend-act{display:flex;gap:8px;flex-wrap:wrap}
+.fclub h3{margin:4px 0 6px}
+.fc-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;margin-top:10px}
+.fc-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--court);border:1px solid var(--line);border-radius:var(--r-s);padding:10px 12px;color:var(--text);cursor:pointer;font:inherit}
+.fc-row:hover,.fc-row:focus-visible{border-color:var(--coral)}
+.fc-row img,.fc-row i{width:38px;height:38px;border-radius:50%;flex:none;object-fit:cover;background:var(--ink);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:13px;color:var(--coral)}
+.fc-row span{flex:1;min-width:0}
+.fc-row b{display:block;font-size:14.5px}
+.fc-row small{display:block;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-row em{font-style:normal;font-family:var(--f-mono);font-size:12.5px;color:var(--coral);flex:none}
+body.pending .xp-bar, body.pending #navBell{opacity:.5}
+body.real .proto,body.pending .proto{display:none}
+body.pending .switch-btn .dot{background:var(--ochre)}

@@ -252,7 +252,8 @@
             billing_status:"active", paid_until:new Date(now + 21*864e5).toISOString()};
     DEMO_DATA = {members:members, groups:groups, sessions:sessions, rewards:rewards, std:std, att:att};
     REQS = [{id:"q1", email:"marta.lopez@gmail.com", full_name:"Marta Lopez", created_at:new Date(now - 864e5).toISOString()},
-            {id:"q2", email:"ben.carter@gmail.com", full_name:"Ben Carter", created_at:new Date(now - 2*36e5).toISOString()}];
+            {id:"q2", email:"ben.carter@gmail.com", full_name:"Ben Carter", created_at:new Date(now - 2*36e5).toISOString(),
+             source:"start", phone:"+1 305 555 0142", note:"Beginner, free weekday evenings"}];
     $("#clubName").textContent = CLUB.name;
     $("#clubWhere").textContent = "Florida, US · Club plan · demo club, nothing is saved";
     var bar = document.createElement("div"); bar.className = "demo-bar";
@@ -459,7 +460,7 @@
   }
   async function loadRequests(){
     if(DEMO) return drawRequests();
-    try{ REQS = fail(await sb.from("join_requests").select("id, email, full_name, created_at, status").eq("club_id", CLUB.id).eq("status", "pending").order("created_at")) || []; }
+    try{ REQS = fail(await sb.from("join_requests").select("id, email, full_name, created_at, status, phone, note, source").eq("club_id", CLUB.id).eq("status", "pending").order("created_at")) || []; }
     catch(err){ REQS = []; }
     drawRequests();
   }
@@ -469,7 +470,9 @@
     chip.hidden = !REQS.length; chip.textContent = REQS.length + " waiting";
     var opts = '<option value="">No group</option>' + GROUPS.map(function(g){ return '<option value="'+g.id+'">'+esc(g.name)+'</option>'; }).join("");
     box.innerHTML = REQS.map(function(r){
-      return '<div class="arow"><div class="arow-main"><b>'+esc(r.full_name || r.email)+'</b><small>'+esc(r.email)+' · asked '+new Date(r.created_at).toLocaleDateString()+'</small></div>'+
+      return '<div class="arow"><div class="arow-main"><b>'+esc(r.full_name || r.email)+'</b><small>'+esc(r.email)+' · asked '+new Date(r.created_at).toLocaleDateString()+'</small>'+
+        (r.source === "start" ? '<small><span class="chip sea">Wants to start training</span>'+(r.phone ? ' <a class="link-btn" href="https://wa.me/'+String(r.phone).replace(/[^0-9]/g, "")+'" target="_blank" rel="noopener">WhatsApp '+esc(r.phone)+'</a>' : '')+'</small>' : '')+
+        (r.note ? '<small class="muted">'+esc(r.note)+'</small>' : '')+'</div>'+
         '<div class="arow-ctl"><select data-req-group="'+r.id+'">'+opts+'</select>'+
         '<button class="btn btn-primary btn-sm" data-req-ok="'+r.id+'">Approve</button><button class="link-btn danger" data-req-no="'+r.id+'">Decline</button></div></div>';
     }).join("");
@@ -647,7 +650,14 @@
     var f = e.target, rules = {};
     ["attended","on_time","camp","drill","friend","tournament"].forEach(function(k){ rules[k] = parseInt(f[k].value, 10) || 0; });
     try{
-      fail(await sb.from("clubs").update({name:f.name.value.trim(), city:f.city.value.trim(), color:f.color.value, points_rules:rules}).eq("id", CLUB.id));
+      var patch = {name:f.name.value.trim(), city:f.city.value.trim(), color:f.color.value, points_rules:rules};
+      /* where the club is, so new players find the closest club first */
+      if(PVB && PVB.geocode && (patch.city !== (CLUB.city || "") || CLUB.lat == null)){
+        var at = await PVB.geocode(patch.city, CLUB.region, CLUB.country);
+        if(at){ patch.lat = at.lat; patch.lng = at.lng; CLUB.lat = at.lat; CLUB.lng = at.lng; }
+      }
+      CLUB.city = patch.city;
+      fail(await sb.from("clubs").update(patch).eq("id", CLUB.id));
       CLUB.name = f.name.value.trim(); $("#clubName").textContent = CLUB.name;
       toast("Club saved");
     }catch(err){ oops(err); }
