@@ -1432,3 +1432,6 @@ body.sb-open .sheet{max-width:560px}
 body.pending .xp-bar, body.pending #navBell{opacity:.5}
 body.real .proto,body.pending .proto{display:none}
 body.pending .switch-btn .dot{background:var(--ochre)}
+.fc-miss{margin-top:6px;padding:12px;border:1px dashed var(--line);border-radius:var(--r-s)}
+.fc-miss b{display:block;margin-bottom:2px}
+.fc-miss p{margin:0 0 8px}

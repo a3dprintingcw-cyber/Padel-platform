@@ -3510,7 +3510,10 @@
         return '<button class="fc-row" data-fclub="'+c.id+'">'+
           (c.logo_url ? '<img src="'+esc(c.logo_url)+'" alt="">' : '<i>'+esc(initialsOf(c.name))+'</i>')+
           '<span><b>'+esc(c.name)+'</b><small>'+esc(where)+'</small></span>'+(km ? '<em>'+km+'</em>' : '')+'</button>';
-      }).join("") : '<p class="empty">'+t("pe.noClubs")+'</p>');
+      }).join("") : '<p class="empty">'+t("pe.noClubs")+'</p>')+
+      '<div class="fc-miss"><b>'+t("pe.missTitle")+'</b><p class="muted small">'+t("pe.missBody")+'</p>'+
+      '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/59995401708?text='+
+        encodeURIComponent("Hi Padel Vitals, I'd like my club to use the app. My club: ")+'">'+t("pe.missGo")+'</a></div>';
   }
   function trainForm(id){
     var c = (OPEN_CLUBS || []).filter(function(x){ return x.id === id; })[0];
