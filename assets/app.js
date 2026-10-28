@@ -280,8 +280,8 @@
     if(PENDING){
       el.hidden = false; el.dataset.go = "";
       el.id = "nba";
-      el.innerHTML = '<span class="nba-eye">'+t("d.doNext")+'</span><span class="nba-t">'+esc(t("pe.find"))+'</span>'+
-        '<span class="nba-s">'+esc(t("pe.findSub"))+'</span>';
+      el.innerHTML = '<span class="nba-eye">'+t("d.doNext")+'</span><span class="nba-t">'+esc(t("pe.startBtn"))+'</span>'+
+        '<span class="nba-s">'+esc(t("pe.unrated"))+'</span>';
       return;
     }
     var next = D.SCHEDULE[0];
@@ -3469,7 +3469,7 @@
     var w = PENDING.waiting;
     bar.innerHTML = '<div class="pend-txt"><b>'+(w ? t("pe.waitTitle", {club:esc(w)}) : t("pe.title"))+'</b>'+
       '<p>'+(w ? t("pe.waitBody") : t("pe.body", {email:esc(PENDING.st.user.email)}))+'</p></div>'+
-      '<div class="pend-act"><button class="btn btn-primary btn-sm" id="pendFind">'+t("pe.find")+'</button>'+
+      '<div class="pend-act"><button class="btn btn-primary btn-sm" id="pendFind">'+t("pe.startBtn")+'</button>'+
       '<button class="btn btn-ghost btn-sm" id="pendCode">'+t("pe.haveCode")+'</button></div>';
   }
 
