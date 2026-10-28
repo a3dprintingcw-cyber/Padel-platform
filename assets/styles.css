@@ -1415,7 +1415,7 @@ body.sb-open .sheet{max-width:560px}
 @media (max-width:360px){.rg-zones{grid-template-columns:1fr}}
 
 /* not in a club yet: the banner on top of the app and Find my club */
-.pend-bar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--coral-dim);border:1px solid rgba(200,245,66,.45);border-radius:var(--r);padding:14px 16px;margin:0 0 18px}
+.pend-bar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:rgba(255,59,59,.14);border:1px solid rgba(255,77,77,.65);border-radius:var(--r);padding:14px 16px;margin:0 0 18px}
 .pend-txt{flex:1 1 260px;min-width:0}
 .pend-txt b{display:block;font-size:15px;margin-bottom:3px}
 .pend-txt p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
@@ -1435,3 +1435,5 @@ body.pending .switch-btn .dot{background:var(--ochre)}
 .fc-miss{margin-top:6px;padding:12px;border:1px dashed var(--line);border-radius:var(--r-s)}
 .fc-miss b{display:block;margin-bottom:2px}
 .fc-miss p{margin:0 0 8px}
+.pend-txt b{color:#FF6B6B}
+.pend-bar .pend-act .btn-primary{background:#FF3B3B;border-color:#FF3B3B;color:#fff}
