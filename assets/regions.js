@@ -50,7 +50,7 @@ window.PV_REGIONS = (function(){
 window.PV_ZONES = (function(){
   var Z = [
     {id:"NA", name:"North America",             level:"A", rep:"US"},
-    {id:"LA", name:"Latin America & Caribbean", level:"D", rep:"CO"},
+    {id:"LA", name:"Latin America & Caribbean", level:"B", rep:"CO"},
     {id:"EU", name:"Europe",                    level:"B", rep:"ES"},
     {id:"ME", name:"Middle East",               level:"A", rep:"AE"},
     {id:"AS", name:"Asia & Pacific",            level:"B", rep:"AU"},

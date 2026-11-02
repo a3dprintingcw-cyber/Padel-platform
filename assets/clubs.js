@@ -43,7 +43,7 @@ window.PP = (function(){
     D: {starter:199, club:349, academy:599,  flagship:999}
   };
   /* each part of the world has one level (regions.js, PV_ZONES):
-     North America A, Middle East A, Europe B, Asia & Pacific B, Latin America & Caribbean D, Africa D */
+     North America A, Middle East A, Europe B, Asia & Pacific B, Latin America & Caribbean B, Africa D */
   function levelFor(cc){
     var Z = window.PV_ZONES, z = Z && Z.get(Z.of(cc));
     return z ? z.level : "D";
